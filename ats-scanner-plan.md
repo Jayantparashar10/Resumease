@@ -1,5 +1,3 @@
-Perfect! Based on your team structure and timeline (now until mid-April = ~10 weeks), here's a detailed week-by-week plan:
-
 ## **Project Overview**
 
 **Team**: 5 members
