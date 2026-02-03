@@ -20,7 +20,7 @@
 ### 🛠️ Tech Stack
 
 - **Backend**: FastAPI + MongoDB Atlas + Motor (Async)
-- **Frontend**: React + Vite + Tailwind CSS + shadcn/ui
+- **Frontend**: React + Next.js + Tailwind CSS + shadcn/ui
 - **LLM**: Cerebras API (gpt-oss-120B)
 - **Hosting**: Render.com (Free Tier)
 - **CI/CD**: GitHub Actions + Docker
@@ -51,7 +51,7 @@
 - [x] GitHub repository with proper structure
 - [ ] FastAPI app running on localhost:8000
 - [ ] MongoDB Atlas connected
-- [ ] React app running on localhost:5173
+- [ ] Next.js app running on localhost:3000
 - [ ] README with setup instructions
 - [ ] Team communication channels set up
 
@@ -157,7 +157,7 @@ uvicorn app.main:app --reload
 cd frontend
 npm install
 cp .env.example .env
-# Add VITE_API_URL=http://localhost:8000
+# Add NEXT_PUBLIC_API_URL=http://localhost:8000
 npm run dev
 ```
 
@@ -223,7 +223,7 @@ For questions or support, contact the team:
 
 ## 📄 License
 
-This project is developed as part of academic semester project.
+This project is developed as part of academic semester project. See the [LICENSE](./LICENSE) file for details.
 
 ---
 
