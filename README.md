@@ -9,18 +9,18 @@
 
 **Duration**: Feb 3, 2026 - Apr 13, 2026 (10 Weeks)  
 **Team Size**: 5 Members  
-**Budget**: $0-15 (Free tier hosting + optional domain)
+**Budget**: $0 (Free tier hosting + optional domain)
 
-### 👥 Team
+### Team
 
 - **Jayant & Aditey**: Backend (FastAPI, MongoDB, LLM, GitHub/Link Analysis, Docker/CI-CD)
 - **Rishav & Samir**: Full Stack (API Integration, Authentication, Recruiter Features)
 - **E Pravin**: Frontend (React, UI/UX, Component Design)
 
-### 🛠️ Tech Stack
+### Tech Stack
 
 - **Backend**: FastAPI + MongoDB Atlas + Motor (Async)
-- **Frontend**: React + Vite + Tailwind CSS + shadcn/ui
+- **Frontend**: React + Next.js + Tailwind CSS + shadcn/ui
 - **LLM**: Cerebras API (gpt-oss-120B)
 - **Hosting**: Render.com (Free Tier)
 - **CI/CD**: GitHub Actions + Docker
@@ -28,7 +28,7 @@
 
 ---
 
-## 📊 Week-by-Week Implementation Progress
+## Week-by-Week Implementation Progress
 
 | Week | Dates | Focus Area | Key Features | Status | Progress |
 |------|-------|------------|--------------|--------|----------|
@@ -45,13 +45,13 @@
 
 ---
 
-## 🎯 Deliverables by Week
+## Deliverables by Week
 
-### Week 1 Deliverables ✅
+### Week 1 Deliverables 
 - [x] GitHub repository with proper structure
 - [ ] FastAPI app running on localhost:8000
 - [ ] MongoDB Atlas connected
-- [ ] React app running on localhost:5173
+- [ ] Next.js app running on localhost:3000
 - [ ] README with setup instructions
 - [ ] Team communication channels set up
 
@@ -157,7 +157,7 @@ uvicorn app.main:app --reload
 cd frontend
 npm install
 cp .env.example .env
-# Add VITE_API_URL=http://localhost:8000
+# Add NEXT_PUBLIC_API_URL=http://localhost:8000
 npm run dev
 ```
 
@@ -178,7 +178,7 @@ docker-compose up --build
 
 ### Cost Targets
 - 🎯 LLM API Cost: <$1 for entire semester
-- 🎯 Total Budget: $0-15 (domain optional)
+- 🎯 Total Budget: $0 (domain optional)
 - 🎯 GitHub API: Stay within 5000 req/hr limit
 - 🎯 MongoDB: Stay within 512MB free tier
 
@@ -212,7 +212,7 @@ docker-compose up --build
 
 ---
 
-## 📞 Contact & Support
+## Contact & Support
 
 For questions or support, contact the team:
 - **Jayant (Backend Lead)**: [Your contact]
@@ -221,9 +221,9 @@ For questions or support, contact the team:
 
 ---
 
-## 📄 License
+## License
 
-This project is developed as part of academic semester project.
+This project is developed as part of academic semester project. See the [LICENSE](./LICENSE) file for details.
 
 ---
 
