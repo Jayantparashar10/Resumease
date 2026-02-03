@@ -215,8 +215,8 @@ docker-compose up --build
 ## Contact & Support
 
 For questions or support, contact the team:
-- **Jayant (Backend Lead)**: [Your contact]
-- **Project Repository**: [GitHub URL]
+- **Jayant (Team Lead)**: parasharjayant10@gmail.com
+- **Project Repository**: https://github.com/Jayantparashar10/Resumease
 - **Documentation**: See detailed plan in `ats-scanner-plan.md`
 
 ---
