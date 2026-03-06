@@ -1,6 +1,6 @@
 from pydantic import BaseModel, EmailStr, Field
 from typing import Optional
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 
 
@@ -28,7 +28,7 @@ class UserLogin(BaseModel):
 class UserInDB(UserBase):
     id: Optional[str] = Field(default=None, alias="_id")
     password_hash: str
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     is_active: bool = True
 
     class Config:

@@ -1,6 +1,4 @@
-import asyncio
-from datetime import datetime, timedelta
-from typing import Optional
+from datetime import datetime, timezone
 
 import httpx
 
@@ -97,5 +95,5 @@ async def fetch_github_profile(username: str) -> dict:
         "total_stars": total_stars,
         "total_forks": total_forks,
         "github_score": github_score,
-        "analyzed_at": datetime.utcnow().isoformat(),
+        "analyzed_at": datetime.now(timezone.utc).isoformat(),
     }

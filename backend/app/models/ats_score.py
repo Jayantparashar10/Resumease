@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field
 from typing import Optional
-from datetime import datetime
+from datetime import datetime, timezone
 
 
 class ScoreBreakdown(BaseModel):
@@ -26,7 +26,7 @@ class ATSScoreInDB(ATSScoreBase):
     missing_skills: list[str] = []
     tokens_used: int = 0
     estimated_cost: float = 0.0
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
     class Config:
         populate_by_name = True
