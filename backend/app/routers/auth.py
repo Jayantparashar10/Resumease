@@ -1,6 +1,5 @@
-from fastapi import APIRouter, HTTPException, status, Depends
-from bson import ObjectId
-from datetime import datetime
+from fastapi import APIRouter, HTTPException, Depends
+from datetime import datetime, timezone
 
 from app.database import get_db
 from app.models.user import UserCreate, UserLogin, UserPublic, TokenResponse
@@ -31,7 +30,7 @@ async def register(user_data: UserCreate):
         "full_name": user_data.full_name,
         "role": user_data.role,
         "password_hash": hash_password(user_data.password),
-        "created_at": datetime.utcnow(),
+        "created_at": datetime.now(timezone.utc),
         "is_active": True,
     }
     result = await db.users.insert_one(doc)

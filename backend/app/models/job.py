@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field
 from typing import Optional
-from datetime import datetime
+from datetime import datetime, timezone
 
 
 class JobBase(BaseModel):
@@ -20,7 +20,7 @@ class JobInDB(JobBase):
     id: Optional[str] = Field(default=None, alias="_id")
     recruiter_id: str
     status: str = "active"
-    posted_at: datetime = Field(default_factory=datetime.utcnow)
+    posted_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
     class Config:
         populate_by_name = True

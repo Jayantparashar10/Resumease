@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
 from bson import ObjectId
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from app.database import get_db
 from app.services.auth import get_current_user
@@ -25,7 +25,7 @@ async def analyze_github(
     # Check cache (24-hour TTL)
     cached = await db.github_analysis.find_one({"username": username})
     if cached:
-        cache_age = datetime.utcnow() - cached.get("analyzed_at", datetime.min)
+        cache_age = datetime.now(timezone.utc) - cached.get("analyzed_at", datetime.min)
         if cache_age < timedelta(hours=24):
             cached["_id"] = str(cached["_id"])
             return cached
@@ -33,7 +33,7 @@ async def analyze_github(
     # Fetch and cache in background
     result = await fetch_github_profile(username)
     if "error" not in result:
-        result["analyzed_at"] = datetime.utcnow()
+        result["analyzed_at"] = datetime.now(timezone.utc)
         await db.github_analysis.update_one(
             {"username": username},
             {"$set": result},
@@ -53,7 +53,7 @@ async def get_github_analysis(username: str, current_user=Depends(get_current_us
         result = await fetch_github_profile(username)
         if "error" in result:
             raise HTTPException(status_code=404, detail=result["error"])
-        result["analyzed_at"] = datetime.utcnow()
+        result["analyzed_at"] = datetime.now(timezone.utc)
         await db.github_analysis.update_one(
             {"username": username}, {"$set": result}, upsert=True
         )

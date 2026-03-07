@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, UploadFile, File, Depends
 from bson import ObjectId
-from datetime import datetime
+from datetime import datetime, timezone
 
 from app.database import get_db
 from app.models.resume import ResumePublic
@@ -46,7 +46,7 @@ async def upload_resume(
         "user_id": current_user["_id"],
         "filename": file.filename,
         "file_size": len(file_bytes),
-        "uploaded_at": datetime.utcnow(),
+        "uploaded_at": datetime.now(timezone.utc),
         **parsed,
     }
     result = await db.resumes.insert_one(doc)
