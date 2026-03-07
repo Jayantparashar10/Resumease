@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, Depends, Query
 from bson import ObjectId
-from datetime import datetime
+from datetime import datetime, timezone
 
 from app.database import get_db
 from app.models.job import JobCreate, JobPublic
@@ -35,7 +35,7 @@ async def create_job(
         **job_data.model_dump(),
         "recruiter_id": current_user["_id"],
         "status": "active",
-        "posted_at": datetime.utcnow(),
+        "posted_at": datetime.now(timezone.utc),
     }
     result = await db.jobs.insert_one(doc)
     doc["_id"] = str(result.inserted_id)

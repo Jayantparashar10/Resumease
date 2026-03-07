@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field
 from typing import Optional
-from datetime import datetime
+from datetime import datetime, timezone
 
 
 class ExtractedLinks(BaseModel):
@@ -27,7 +27,7 @@ class ResumeInDB(ResumeBase):
     skills: list[str] = []
     sections: dict = {}
     status: str = "pending"  # pending | parsed | failed
-    uploaded_at: datetime = Field(default_factory=datetime.utcnow)
+    uploaded_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
     class Config:
         populate_by_name = True

@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, Depends
 from bson import ObjectId
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 
 from app.database import get_db
 from app.models.ats_score import ATSScorePublic, ScoreRequest
@@ -40,12 +40,11 @@ async def score_resume(
         raise HTTPException(status_code=404, detail="Job not found")
 
     # Check cache (7-day TTL)
-    from datetime import timedelta
     existing = await db.ats_scores.find_one(
         {"resume_id": request.resume_id, "job_id": request.job_id}
     )
     if existing:
-        age = datetime.utcnow() - existing.get("created_at", datetime.min)
+        age = datetime.now(timezone.utc) - existing.get("created_at", datetime.min)
         if age < timedelta(days=7):
             existing["_id"] = str(existing["_id"])
             return ATSScorePublic(
@@ -93,7 +92,7 @@ async def score_resume(
         "missing_skills": llm_result.get("missing_skills", []),
         "tokens_used": llm_result.get("tokens_used", 0),
         "estimated_cost": llm_result.get("estimated_cost", 0.0),
-        "created_at": datetime.utcnow(),
+        "created_at": datetime.now(timezone.utc),
     }
 
     result = await db.ats_scores.insert_one(doc)
