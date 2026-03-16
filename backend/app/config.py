@@ -9,14 +9,22 @@ class Settings(BaseSettings):
     ENVIRONMENT: str = "development"
     DEBUG: bool = True
 
-    # MongoDB
-    MONGODB_URI: str = "mongodb://localhost:27017"
-    MONGODB_DB: str = "ats_db"
+    # Providers
+    AUTH_PROVIDER: str = "supabase"  # supabase
+    DATABASE_PROVIDER: str = "supabase"  # supabase
 
     # JWT
     JWT_SECRET: str = "changeme-super-secret-key"
     JWT_ALGORITHM: str = "HS256"
     JWT_EXPIRE_HOURS: int = 24
+
+    # Google OAuth
+    GOOGLE_CLIENT_ID: str = ""
+
+    # Supabase
+    SUPABASE_URL: str = ""
+    SUPABASE_ANON_KEY: str = ""
+    SUPABASE_SERVICE_ROLE_KEY: str = ""
 
     # GitHub
     GITHUB_TOKEN: str = ""
