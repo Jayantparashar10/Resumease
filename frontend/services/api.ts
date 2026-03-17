@@ -37,6 +37,8 @@ export interface User {
   email: string;
   full_name: string;
   role: "student" | "recruiter" | "admin";
+  avatar_url?: string | null;
+  onboarding_completed: boolean;
   created_at: string;
   is_active: boolean;
 }
@@ -45,9 +47,24 @@ export interface AuthResponse {
   access_token: string;
   token_type: string;
   user: User;
+  onboarding_completed: boolean;
+}
+
+export interface OnboardingPayload {
+  role: "student" | "recruiter";
+  data: Record<string, unknown>;
+}
+
+export interface ProfileUpdatePayload {
+  full_name?: string;
+  avatar_url?: string;
+  onboarding_data?: Record<string, unknown>;
 }
 
 export const authApi = {
+  googleLogin: (id_token: string) =>
+    api.post<AuthResponse>("/api/v1/auth/google", { id_token }),
+
   register: (data: {
     email: string;
     password: string;
@@ -59,6 +76,14 @@ export const authApi = {
     api.post<AuthResponse>("/api/v1/auth/login", { email, password }),
 
   me: () => api.get<User>("/api/v1/auth/me"),
+
+  completeOnboarding: (payload: OnboardingPayload) =>
+    api.post<User>("/api/v1/auth/onboarding", payload),
+
+  updateProfile: (payload: ProfileUpdatePayload) =>
+    api.put<User>("/api/v1/auth/profile", payload),
+
+  logout: () => Promise.resolve(),
 };
 
 // ── Resumes ───────────────────────────────────────────────────────
@@ -160,5 +185,29 @@ export const atsApi = {
   score: (resume_id: string, job_id: string) =>
     api.post<ATSScore>("/api/v1/ats/score", { resume_id, job_id }),
   get: (id: string) => api.get<ATSScore>(`/api/v1/ats/score/${id}`),
-  history: () => api.get<{ id: string; resume_id: string; job_id: string; overall_score: number; created_at: string }[]>("/api/v1/ats/history"),
+  history: () =>
+    api.get<
+      {
+        id: string;
+        resume_id: string;
+        job_id: string;
+        overall_score: number;
+        created_at: string;
+      }[]
+    >("/api/v1/ats/history"),
+};
+
+export interface RecruiterCandidateScore {
+  id: string;
+  candidate_name?: string;
+  candidate_email?: string;
+  resume_id: string;
+  job_id: string;
+  overall_score: number;
+  created_at: string;
+}
+
+export const recruiterApi = {
+  getCandidates: (jobId: string) =>
+    api.get<RecruiterCandidateScore[]>(`/api/v1/recruiter/candidates/${jobId}`),
 };

@@ -4,7 +4,7 @@ from contextlib import asynccontextmanager
 
 from app.config import settings
 from app.database import connect_db, close_db
-from app.routers import auth, resumes, jobs, analysis, ats, recruiter
+from app.routers import auth, resumes, jobs, analysis, ats
 
 
 @asynccontextmanager
@@ -37,7 +37,6 @@ app.include_router(resumes.router, prefix="/api/v1/resumes", tags=["Resumes"])
 app.include_router(jobs.router, prefix="/api/v1/jobs", tags=["Jobs"])
 app.include_router(analysis.router, prefix="/api/v1/analysis", tags=["Analysis"])
 app.include_router(ats.router, prefix="/api/v1/ats", tags=["ATS Scoring"])
-app.include_router(recruiter.router, prefix="/api/v1/recruiter", tags=["Recruiter"])
 
 
 @app.get("/health", tags=["Health"])

@@ -2,8 +2,9 @@
 
 import { Suspense } from "react";
 import { useCallback, useEffect, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
+import RoleGuard from "@/components/auth/RoleGuard";
 import Navbar from "@/components/Navbar";
 import { resumeApi, Resume, jobApi, Job, atsApi, ATSScore, analysisApi } from "@/services/api";
 import toast from "react-hot-toast";
@@ -11,8 +12,7 @@ import { Upload, Trash2, Github, ExternalLink } from "lucide-react";
 import { useDropzone } from "react-dropzone";
 
 function ResumesContent() {
-  const { user, loading } = useAuth();
-  const router = useRouter();
+  const { user } = useAuth();
   const searchParams = useSearchParams();
   const selectedId = searchParams.get("id");
 
@@ -24,10 +24,6 @@ function ResumesContent() {
   const [scoring, setScoring] = useState(false);
   const [atsResult, setAtsResult] = useState<ATSScore | null>(null);
   const [githubData, setGithubData] = useState<Record<string, unknown> | null>(null);
-
-  useEffect(() => {
-    if (!loading && !user) router.push("/login");
-  }, [loading, user, router]);
 
   const loadResumes = useCallback(async () => {
     const res = await resumeApi.list();
@@ -107,12 +103,13 @@ function ResumesContent() {
     }
   };
 
-  if (loading || !user) return null;
+  if (!user) return null;
 
   return (
-    <div className="min-h-screen bg-zinc-50">
-      <Navbar />
-      <main className="mx-auto max-w-6xl px-6 py-10">
+    <RoleGuard role="student">
+      <div className="min-h-screen bg-zinc-50">
+        <Navbar />
+        <main className="mx-auto max-w-6xl px-6 py-10">
         <h1 className="mb-6 text-2xl font-bold text-zinc-900">My Resumes</h1>
 
         {/* Upload zone */}
@@ -305,8 +302,9 @@ function ResumesContent() {
             </div>
           )}
         </div>
-      </main>
-    </div>
+        </main>
+      </div>
+    </RoleGuard>
   );
 }
 export default function ResumesPage() {

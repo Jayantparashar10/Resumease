@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import RoleGuard from "@/components/auth/RoleGuard";
 import { useAuth } from "@/context/AuthContext";
 import Navbar from "@/components/Navbar";
 import { resumeApi, Resume, atsApi } from "@/services/api";
@@ -9,18 +9,12 @@ import { FileText, BarChart3, Upload, ExternalLink } from "lucide-react";
 import Link from "next/link";
 
 export default function StudentDashboard() {
-  const { user, loading } = useAuth();
-  const router = useRouter();
+  const { user } = useAuth();
   const [resumes, setResumes] = useState<Resume[]>([]);
   const [scoreHistory, setScoreHistory] = useState<
     { id: string; resume_id: string; job_id: string; overall_score: number; created_at: string }[]
   >([]);
   const [fetching, setFetching] = useState(true);
-
-  useEffect(() => {
-    if (!loading && !user) router.push("/login");
-    if (!loading && user?.role === "recruiter") router.push("/recruiter/dashboard");
-  }, [loading, user, router]);
 
   useEffect(() => {
     if (!user) return;
@@ -30,7 +24,7 @@ export default function StudentDashboard() {
     }).finally(() => setFetching(false));
   }, [user]);
 
-  if (loading || !user) return null;
+  if (!user) return null;
 
   const avgScore =
     scoreHistory.length
@@ -38,14 +32,15 @@ export default function StudentDashboard() {
       : null;
 
   return (
-    <div className="min-h-screen bg-zinc-50">
-      <Navbar />
-      <main className="mx-auto max-w-5xl px-6 py-10">
+    <RoleGuard role="student">
+      <div className="min-h-screen bg-zinc-50">
+        <Navbar />
+        <main className="mx-auto max-w-5xl px-6 py-10">
         <h1 className="mb-2 text-2xl font-bold text-zinc-900">
           Welcome back, {user.full_name.split(" ")[0]} 👋
         </h1>
         <p className="mb-8 text-sm text-zinc-500">
-          Here's a snapshot of your profile.
+          Here is a snapshot of your profile.
         </p>
 
         {/* Stats */}
@@ -72,10 +67,16 @@ export default function StudentDashboard() {
             <Upload className="h-4 w-4" /> Upload Resume
           </Link>
           <Link
-            href="/jobs"
+            href="/student/jobs"
             className="flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold text-zinc-700 hover:bg-zinc-100"
           >
             Browse Jobs
+          </Link>
+          <Link
+            href="/student/ats-history"
+            className="flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold text-zinc-700 hover:bg-zinc-100"
+          >
+            ATS History
           </Link>
         </div>
 
@@ -149,7 +150,8 @@ export default function StudentDashboard() {
             </div>
           </section>
         )}
-      </main>
-    </div>
+        </main>
+      </div>
+    </RoleGuard>
   );
 }

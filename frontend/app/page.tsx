@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import { Brain, Github, BarChart3, FileText, ArrowRight } from "lucide-react";
+import GoogleSignInButton from "@/components/auth/GoogleSignInButton";
 
 const features = [
   {
@@ -33,6 +34,8 @@ const features = [
 
 export default function LandingPage() {
   const { user } = useAuth();
+  const dashboardHref =
+    user?.role === "recruiter" ? "/recruiter/dashboard" : "/student/dashboard";
 
   return (
     <div className="min-h-screen">
@@ -42,24 +45,15 @@ export default function LandingPage() {
         <div className="flex gap-3">
           {user ? (
             <Link
-              href={user.role === "recruiter" ? "/recruiter/dashboard" : "/student/dashboard"}
+              href={dashboardHref}
               className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
             >
               Dashboard →
             </Link>
           ) : (
             <>
-              <Link
-                href="/login"
-                className="rounded-lg border px-4 py-2 text-sm font-medium hover:bg-zinc-50"
-              >
-                Log in
-              </Link>
-              <Link
-                href="/register"
-                className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
-              >
-                Sign up
+              <Link href="/login" className="rounded-lg border px-4 py-2 text-sm font-medium hover:bg-zinc-50">
+                Continue
               </Link>
             </>
           )}
@@ -79,18 +73,16 @@ export default function LandingPage() {
           give you an accurate ATS score with actionable feedback.
         </p>
         <div className="flex justify-center gap-4">
-          <Link
-            href="/register"
-            className="flex items-center gap-2 rounded-xl bg-indigo-600 px-6 py-3 font-semibold text-white shadow hover:bg-indigo-700"
-          >
-            Get Started Free <ArrowRight className="h-4 w-4" />
-          </Link>
-          <Link
-            href="/login"
-            className="rounded-xl border border-zinc-300 px-6 py-3 font-semibold text-zinc-700 hover:bg-zinc-100"
-          >
-            Log in
-          </Link>
+          {user ? (
+            <Link
+              href={dashboardHref}
+              className="flex items-center gap-2 rounded-xl bg-indigo-600 px-6 py-3 font-semibold text-white shadow hover:bg-indigo-700"
+            >
+              Open Dashboard <ArrowRight className="h-4 w-4" />
+            </Link>
+          ) : (
+            <GoogleSignInButton />
+          )}
         </div>
       </section>
 
