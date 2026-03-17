@@ -21,10 +21,15 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={`${geistSans.variable} antialiased bg-zinc-50 text-zinc-900`}>
+      <body className={`${geistSans.variable} antialiased bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-50`}>
         <AuthProvider>
           {children}
-          <Toaster position="top-right" />
+          <Toaster
+            position="top-right"
+            toastOptions={{
+              className: "!bg-white dark:!bg-slate-800 !text-slate-900 dark:!text-slate-100 !border !border-slate-200 dark:!border-slate-700 !shadow-lg",
+            }}
+          />
         </AuthProvider>
       </body>
     </html>
