@@ -3,7 +3,15 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { Brain, LogOut, LayoutDashboard, FileText, Briefcase } from "lucide-react";
+import {
+  Brain,
+  LogOut,
+  LayoutDashboard,
+  FileText,
+  Briefcase,
+  BarChart3,
+  UserCircle2,
+} from "lucide-react";
 
 export default function Navbar() {
   const { user, logout } = useAuth();
@@ -13,12 +21,15 @@ export default function Navbar() {
     user?.role === "recruiter"
       ? [
           { href: "/recruiter/dashboard", label: "Dashboard", icon: <LayoutDashboard className="h-4 w-4" /> },
-          { href: "/jobs/manage", label: "Jobs", icon: <Briefcase className="h-4 w-4" /> },
+          { href: "/recruiter/jobs", label: "Jobs", icon: <Briefcase className="h-4 w-4" /> },
+          { href: "/profile", label: "Profile", icon: <UserCircle2 className="h-4 w-4" /> },
         ]
       : [
           { href: "/student/dashboard", label: "Dashboard", icon: <LayoutDashboard className="h-4 w-4" /> },
           { href: "/student/resumes", label: "Resumes", icon: <FileText className="h-4 w-4" /> },
-          { href: "/jobs", label: "Browse Jobs", icon: <Briefcase className="h-4 w-4" /> },
+          { href: "/student/jobs", label: "Jobs", icon: <Briefcase className="h-4 w-4" /> },
+          { href: "/student/ats-history", label: "ATS History", icon: <BarChart3 className="h-4 w-4" /> },
+          { href: "/profile", label: "Profile", icon: <UserCircle2 className="h-4 w-4" /> },
         ];
 
   return (

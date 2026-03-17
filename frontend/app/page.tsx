@@ -8,6 +8,8 @@ import { GlassmorphismMinimalMetricsBlock } from "@/components/ui/glassmorphism-
 
 export default function LandingPage() {
   const { user } = useAuth();
+  const dashboardHref =
+    user?.role === "recruiter" ? "/recruiter/dashboard" : "/student/dashboard";
 
   return (
     <div className="min-h-screen bg-background">
@@ -24,7 +26,7 @@ export default function LandingPage() {
         <div className="flex gap-3">
           {user ? (
             <Link
-              href={user.role === "recruiter" ? "/recruiter/dashboard" : "/student/dashboard"}
+              href={dashboardHref}
               className="flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-violet-600 to-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm shadow-violet-500/25 hover:shadow-violet-500/40 hover:opacity-90 transition-all"
             >
               Dashboard <ArrowRight className="h-3.5 w-3.5" />

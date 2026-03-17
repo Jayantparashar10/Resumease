@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import RoleGuard from "@/components/auth/RoleGuard";
 import { useAuth } from "@/context/AuthContext";
 import Navbar from "@/components/Navbar";
 import { resumeApi, Resume, atsApi } from "@/services/api";
@@ -9,18 +9,12 @@ import { FileText, BarChart3, Upload, ExternalLink, TrendingUp } from "lucide-re
 import Link from "next/link";
 
 export default function StudentDashboard() {
-  const { user, loading } = useAuth();
-  const router = useRouter();
+  const { user } = useAuth();
   const [resumes, setResumes] = useState<Resume[]>([]);
   const [scoreHistory, setScoreHistory] = useState<
     { id: string; resume_id: string; job_id: string; overall_score: number; created_at: string }[]
   >([]);
   const [fetching, setFetching] = useState(true);
-
-  useEffect(() => {
-    if (!loading && !user) router.push("/login");
-    if (!loading && user?.role === "recruiter") router.push("/recruiter/dashboard");
-  }, [loading, user, router]);
 
   useEffect(() => {
     if (!user) return;
@@ -30,7 +24,7 @@ export default function StudentDashboard() {
     }).finally(() => setFetching(false));
   }, [user]);
 
-  if (loading || !user) return null;
+  if (!user) return null;
 
   const avgScore =
     scoreHistory.length
@@ -52,18 +46,18 @@ export default function StudentDashboard() {
       : "bg-red-50 dark:bg-red-950/50 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-800/60";
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
-      <Navbar />
-      <main className="mx-auto max-w-5xl px-6 py-10">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="mb-1 text-2xl font-bold text-slate-900 dark:text-slate-50">
-            Welcome back, {user.full_name.split(" ")[0]} 👋
-          </h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400">
-            Here&apos;s a snapshot of your profile.
-          </p>
-        </div>
+    <RoleGuard role="student">
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
+        <Navbar />
+        <main className="mx-auto max-w-5xl px-6 py-10">
+          <div className="mb-8">
+            <h1 className="mb-1 text-2xl font-bold text-slate-900 dark:text-slate-50">
+              Welcome back, {user.full_name.split(" ")[0]} 👋
+            </h1>
+            <p className="text-sm text-slate-500 dark:text-slate-400">
+              Here&apos;s a snapshot of your profile.
+            </p>
+          </div>
 
         {/* Stats */}
         <div className="mb-8 grid grid-cols-2 gap-4 sm:grid-cols-3">
@@ -105,6 +99,12 @@ export default function StudentDashboard() {
             className="flex items-center gap-2 rounded-xl border border-slate-200 dark:border-slate-700 px-4 py-2.5 text-sm font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
           >
             Browse Jobs
+          </Link>
+          <Link
+            href="/student/ats-history"
+            className="flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold text-zinc-700 hover:bg-zinc-100"
+          >
+            ATS History
           </Link>
         </div>
 
@@ -172,7 +172,8 @@ export default function StudentDashboard() {
             </div>
           </section>
         )}
-      </main>
-    </div>
+        </main>
+      </div>
+    </RoleGuard>
   );
 }

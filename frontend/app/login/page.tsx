@@ -1,54 +1,50 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@/context/AuthContext";
 import toast from "react-hot-toast";
 import { Brain } from "lucide-react";
+import GoogleSignInButton from "@/components/auth/GoogleSignInButton";
+import { useAuth } from "@/context/AuthContext";
 
 export default function LoginPage() {
-  const { login } = useAuth();
   const router = useRouter();
+  const { user, loading, getPostLoginRoute, login } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (!loading && user) {
+      router.replace(getPostLoginRoute(user));
+    }
+  }, [getPostLoginRoute, loading, router, user]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    setLoading(true);
+    setSubmitting(true);
     try {
       await login(email, password);
       toast.success("Welcome back!");
-      const stored = localStorage.getItem("access_token");
-      if (stored) {
-        const payload = JSON.parse(atob(stored.split(".")[1]));
-        router.push(
-          payload.role === "recruiter"
-            ? "/recruiter/dashboard"
-            : "/student/dashboard"
-        );
-      }
+      router.push(getPostLoginRoute());
     } catch (err: unknown) {
       const message =
         (err as { response?: { data?: { detail?: string } } })?.response?.data
           ?.detail || "Login failed";
       toast.error(message);
     } finally {
-      setLoading(false);
+      setSubmitting(false);
     }
   };
 
   return (
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-slate-50 dark:bg-slate-950 px-4">
-      {/* Background orbs */}
       <div className="orb -top-40 -left-40 h-96 w-96 bg-violet-400/20 dark:bg-violet-700/15" />
       <div className="orb -bottom-20 -right-20 h-72 w-72 bg-indigo-400/15 dark:bg-indigo-700/10" />
 
       <div className="relative w-full max-w-md">
-        {/* Card */}
         <div className="rounded-2xl border border-slate-200/80 dark:border-slate-700/60 bg-white dark:bg-slate-900 p-8 shadow-xl shadow-slate-200/50 dark:shadow-slate-950/50">
-          {/* Logo */}
           <Link href="/" className="mb-6 flex items-center gap-2 w-fit">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-violet-600 to-indigo-600 shadow-sm shadow-violet-500/30">
               <Brain className="h-4 w-4 text-white" />
@@ -65,6 +61,16 @@ export default function LoginPage() {
               Create an account
             </Link>
           </p>
+
+          <div className="mb-5">
+            <GoogleSignInButton />
+          </div>
+
+          <div className="mb-5 flex items-center gap-3 text-xs text-slate-400 dark:text-slate-500">
+            <div className="h-px flex-1 bg-slate-200 dark:bg-slate-700" />
+            or continue with email
+            <div className="h-px flex-1 bg-slate-200 dark:bg-slate-700" />
+          </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
@@ -95,10 +101,10 @@ export default function LoginPage() {
             </div>
             <button
               type="submit"
-              disabled={loading}
+              disabled={submitting}
               className="w-full rounded-lg bg-gradient-to-r from-violet-600 to-indigo-600 py-2.5 font-semibold text-white shadow-sm shadow-violet-500/25 hover:opacity-90 disabled:opacity-60 transition-opacity"
             >
-              {loading ? "Signing in…" : "Sign in"}
+              {submitting ? "Signing in..." : "Sign in"}
             </button>
           </form>
         </div>

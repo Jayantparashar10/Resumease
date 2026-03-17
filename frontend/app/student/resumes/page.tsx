@@ -2,8 +2,9 @@
 
 import { Suspense } from "react";
 import { useCallback, useEffect, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
+import RoleGuard from "@/components/auth/RoleGuard";
 import Navbar from "@/components/Navbar";
 import { resumeApi, Resume, jobApi, Job, atsApi, ATSScore, analysisApi } from "@/services/api";
 import toast from "react-hot-toast";
@@ -11,8 +12,7 @@ import { Upload, Trash2, Github, ExternalLink, FileText } from "lucide-react";
 import { useDropzone } from "react-dropzone";
 
 function ResumesContent() {
-  const { user, loading } = useAuth();
-  const router = useRouter();
+  const { user } = useAuth();
   const searchParams = useSearchParams();
   const selectedId = searchParams.get("id");
 
@@ -24,10 +24,6 @@ function ResumesContent() {
   const [scoring, setScoring] = useState(false);
   const [atsResult, setAtsResult] = useState<ATSScore | null>(null);
   const [githubData, setGithubData] = useState<Record<string, unknown> | null>(null);
-
-  useEffect(() => {
-    if (!loading && !user) router.push("/login");
-  }, [loading, user, router]);
 
   const loadResumes = useCallback(async () => {
     const res = await resumeApi.list();
@@ -107,7 +103,7 @@ function ResumesContent() {
     }
   };
 
-  if (loading || !user) return null;
+  if (!user) return null;
 
   const scoreColor = (score: number) =>
     score >= 70 ? "text-emerald-600 dark:text-emerald-400" : score >= 50 ? "text-amber-600 dark:text-amber-400" : "text-red-600 dark:text-red-400";
@@ -116,10 +112,11 @@ function ResumesContent() {
     score >= 70 ? "bg-emerald-500" : score >= 50 ? "bg-amber-500" : "bg-red-500";
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
-      <Navbar />
-      <main className="mx-auto max-w-6xl px-6 py-10">
-        <h1 className="mb-6 text-2xl font-bold text-slate-900 dark:text-slate-50">My Resumes</h1>
+    <RoleGuard role="student">
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
+        <Navbar />
+        <main className="mx-auto max-w-6xl px-6 py-10">
+          <h1 className="mb-6 text-2xl font-bold text-slate-900 dark:text-slate-50">My Resumes</h1>
 
         {/* Upload zone */}
         <div
@@ -325,8 +322,9 @@ function ResumesContent() {
             </div>
           )}
         </div>
-      </main>
-    </div>
+        </main>
+      </div>
+    </RoleGuard>
   );
 }
 

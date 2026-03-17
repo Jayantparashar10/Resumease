@@ -1,14 +1,15 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@/context/AuthContext";
 import toast from "react-hot-toast";
 import { Brain } from "lucide-react";
+import GoogleSignInButton from "@/components/auth/GoogleSignInButton";
+import { useAuth } from "@/context/AuthContext";
 
 export default function RegisterPage() {
-  const { register } = useAuth();
+  const { register, user, loading: authLoading, getPostLoginRoute } = useAuth();
   const router = useRouter();
   const [form, setForm] = useState({
     full_name: "",
@@ -16,7 +17,13 @@ export default function RegisterPage() {
     password: "",
     role: "student" as "student" | "recruiter",
   });
-  const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (!authLoading && user) {
+      router.replace(getPostLoginRoute(user));
+    }
+  }, [authLoading, getPostLoginRoute, router, user]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -24,7 +31,7 @@ export default function RegisterPage() {
       toast.error("Password must be at least 8 characters");
       return;
     }
-    setLoading(true);
+    setSubmitting(true);
     try {
       await register(form);
       toast.success("Account created!");
@@ -39,7 +46,7 @@ export default function RegisterPage() {
           ?.detail || "Registration failed";
       toast.error(message);
     } finally {
-      setLoading(false);
+      setSubmitting(false);
     }
   };
 
@@ -68,6 +75,16 @@ export default function RegisterPage() {
               Sign in
             </Link>
           </p>
+
+          <div className="mb-5">
+            <GoogleSignInButton />
+          </div>
+
+          <div className="mb-5 flex items-center gap-3 text-xs text-slate-400 dark:text-slate-500">
+            <div className="h-px flex-1 bg-slate-200 dark:bg-slate-700" />
+            or create account with email
+            <div className="h-px flex-1 bg-slate-200 dark:bg-slate-700" />
+          </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
@@ -135,10 +152,10 @@ export default function RegisterPage() {
 
             <button
               type="submit"
-              disabled={loading}
+              disabled={submitting}
               className="w-full rounded-lg bg-gradient-to-r from-violet-600 to-indigo-600 py-2.5 font-semibold text-white shadow-sm shadow-violet-500/25 hover:opacity-90 disabled:opacity-60 transition-opacity"
             >
-              {loading ? "Creating account…" : "Create account"}
+              {submitting ? "Creating account..." : "Create account"}
             </button>
           </form>
         </div>
