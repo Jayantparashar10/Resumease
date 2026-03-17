@@ -2,35 +2,9 @@
 
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
-import { Brain, Github, BarChart3, FileText, ArrowRight } from "lucide-react";
-import GoogleSignInButton from "@/components/auth/GoogleSignInButton";
-
-const features = [
-  {
-    icon: <FileText className="h-6 w-6 text-indigo-600" />,
-    title: "Smart Resume Parsing",
-    description:
-      "PDF & DOCX parsing with automatic skill extraction and link detection.",
-  },
-  {
-    icon: <Github className="h-6 w-6 text-indigo-600" />,
-    title: "GitHub Analysis",
-    description:
-      "Deep-dive into GitHub profiles: repos, languages, activity and contributions.",
-  },
-  {
-    icon: <Brain className="h-6 w-6 text-indigo-600" />,
-    title: "LLM-Powered Scoring",
-    description:
-      "Cerebras-powered ATS scoring with detailed feedback and improvement suggestions.",
-  },
-  {
-    icon: <BarChart3 className="h-6 w-6 text-indigo-600" />,
-    title: "Recruiter Dashboard",
-    description:
-      "Manage job postings, rank candidates, and shortlist top talent effortlessly.",
-  },
-];
+import { Brain, ArrowRight } from "lucide-react";
+import { GlowyWavesHero } from "@/components/ui/glowy-waves-hero-shadcnui";
+import { GlassmorphismMinimalMetricsBlock } from "@/components/ui/glassmorphism-minimal-metrics-block-shadcnui";
 
 export default function LandingPage() {
   const { user } = useAuth();
@@ -38,22 +12,38 @@ export default function LandingPage() {
     user?.role === "recruiter" ? "/recruiter/dashboard" : "/student/dashboard";
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-background">
       {/* Nav */}
-      <nav className="border-b bg-white px-6 py-4 flex items-center justify-between">
-        <span className="text-xl font-bold text-indigo-600">ResumeAse</span>
+      <nav className="border-b border-border/60 bg-background/80 backdrop-blur-xl px-6 py-4 flex items-center justify-between sticky top-0 z-50">
+        <div className="flex items-center gap-2">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-violet-600 to-indigo-600 shadow-sm shadow-violet-500/30">
+            <Brain className="h-4 w-4 text-white" />
+          </div>
+          <span className="text-lg font-bold text-foreground">
+            Resume<span className="text-primary">Ase</span>
+          </span>
+        </div>
         <div className="flex gap-3">
           {user ? (
             <Link
               href={dashboardHref}
-              className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
+              className="flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-violet-600 to-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm shadow-violet-500/25 hover:shadow-violet-500/40 hover:opacity-90 transition-all"
             >
-              Dashboard →
+              Dashboard <ArrowRight className="h-3.5 w-3.5" />
             </Link>
           ) : (
             <>
-              <Link href="/login" className="rounded-lg border px-4 py-2 text-sm font-medium hover:bg-zinc-50">
-                Continue
+              <Link
+                href="/login"
+                className="rounded-lg border border-border px-4 py-2 text-sm font-medium text-foreground/80 hover:bg-muted transition-colors"
+              >
+                Log in
+              </Link>
+              <Link
+                href="/register"
+                className="rounded-lg bg-gradient-to-r from-violet-600 to-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm shadow-violet-500/25 hover:opacity-90 transition-opacity"
+              >
+                Sign up
               </Link>
             </>
           )}
@@ -61,55 +51,12 @@ export default function LandingPage() {
       </nav>
 
       {/* Hero */}
-      <section className="mx-auto max-w-5xl px-6 py-24 text-center">
-        <span className="mb-4 inline-block rounded-full bg-indigo-100 px-3 py-1 text-xs font-semibold text-indigo-700 uppercase tracking-wider">
-          AI-Powered ATS
-        </span>
-        <h1 className="mb-6 text-5xl font-extrabold leading-tight tracking-tight text-zinc-900">
-          Beat the ATS.<br />Land Your Dream Job.
-        </h1>
-        <p className="mx-auto mb-10 max-w-xl text-lg text-zinc-500">
-          ResumeAse scans your resume, verifies your GitHub, and uses LLM to
-          give you an accurate ATS score with actionable feedback.
-        </p>
-        <div className="flex justify-center gap-4">
-          {user ? (
-            <Link
-              href={dashboardHref}
-              className="flex items-center gap-2 rounded-xl bg-indigo-600 px-6 py-3 font-semibold text-white shadow hover:bg-indigo-700"
-            >
-              Open Dashboard <ArrowRight className="h-4 w-4" />
-            </Link>
-          ) : (
-            <GoogleSignInButton />
-          )}
-        </div>
-      </section>
+      <GlowyWavesHero />
 
-      {/* Features */}
-      <section className="bg-white py-20">
-        <div className="mx-auto max-w-5xl px-6">
-          <h2 className="mb-12 text-center text-3xl font-bold text-zinc-900">
-            Everything you need to stand out
-          </h2>
-          <div className="grid gap-8 sm:grid-cols-2">
-            {features.map((f) => (
-              <div
-                key={f.title}
-                className="rounded-2xl border bg-zinc-50 p-6 hover:shadow-md transition-shadow"
-              >
-                <div className="mb-3 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-50">
-                  {f.icon}
-                </div>
-                <h3 className="mb-2 font-semibold text-zinc-900">{f.title}</h3>
-                <p className="text-sm text-zinc-500">{f.description}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      {/* Features / Metrics */}
+      <GlassmorphismMinimalMetricsBlock />
 
-      <footer className="border-t bg-white py-8 text-center text-sm text-zinc-400">
+      <footer className="border-t border-border bg-background py-8 text-center text-sm text-muted-foreground">
         © 2026 ResumeAse · Built with FastAPI + Next.js
       </footer>
     </div>
