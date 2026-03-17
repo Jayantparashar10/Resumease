@@ -6,7 +6,7 @@ import { useAuth } from "@/context/AuthContext";
 import Navbar from "@/components/Navbar";
 import { jobApi, Job, resumeApi, Resume, atsApi } from "@/services/api";
 import toast from "react-hot-toast";
-import { Briefcase, MapPin, Clock } from "lucide-react";
+import { Briefcase, MapPin, Clock, Zap } from "lucide-react";
 
 export default function JobsPage() {
   const { user, loading } = useAuth();
@@ -50,22 +50,22 @@ export default function JobsPage() {
   if (loading || !user) return null;
 
   return (
-    <div className="min-h-screen bg-zinc-50">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
       <Navbar />
       <main className="mx-auto max-w-4xl px-6 py-10">
-        <h1 className="mb-2 text-2xl font-bold text-zinc-900">Browse Jobs</h1>
-        <p className="mb-6 text-sm text-zinc-500">
-          Click "Check ATS Score" to instantly see how well your resume matches.
+        <h1 className="mb-1 text-2xl font-bold text-slate-900 dark:text-slate-50">Browse Jobs</h1>
+        <p className="mb-6 text-sm text-slate-500 dark:text-slate-400">
+          Click &ldquo;Check ATS Score&rdquo; to instantly see how well your resume matches.
         </p>
 
         {/* Resume selector */}
         {resumes.length > 0 && (
-          <div className="mb-6 flex items-center gap-3">
-            <label className="text-sm font-medium text-zinc-700">Score with resume:</label>
+          <div className="mb-6 flex items-center gap-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-4 py-3">
+            <label className="text-sm font-medium text-slate-700 dark:text-slate-300 whitespace-nowrap">Score with:</label>
             <select
               value={selectedResume}
               onChange={(e) => setSelectedResume(e.target.value)}
-              className="rounded-lg border border-zinc-300 px-3 py-2 text-sm outline-none focus:border-indigo-500"
+              className="flex-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 px-3 py-1.5 text-sm text-slate-900 dark:text-slate-100 outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 transition-colors"
             >
               {resumes.map((r) => (
                 <option key={r.id} value={r.id}>{r.filename}</option>
@@ -75,30 +75,31 @@ export default function JobsPage() {
         )}
 
         {fetching ? (
-          <p className="text-sm text-zinc-400">Loading jobs…</p>
+          <p className="text-sm text-slate-400 dark:text-slate-500">Loading jobs…</p>
         ) : jobs.length === 0 ? (
-          <div className="rounded-2xl border-2 border-dashed bg-white p-12 text-center">
-            <Briefcase className="mx-auto mb-3 h-8 w-8 text-zinc-300" />
-            <p className="text-sm text-zinc-500">No jobs posted yet.</p>
+          <div className="rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-12 text-center">
+            <Briefcase className="mx-auto mb-3 h-8 w-8 text-slate-300 dark:text-slate-600" />
+            <p className="text-sm text-slate-500 dark:text-slate-400">No jobs posted yet.</p>
           </div>
         ) : (
           <div className="space-y-4">
             {jobs.map((job) => (
-              <div key={job.id} className="rounded-2xl border bg-white p-6 hover:shadow-sm transition-shadow">
+              <div key={job.id} className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 hover:border-slate-300 dark:hover:border-slate-700 hover:shadow-md dark:hover:shadow-slate-900/50 transition-all">
                 <div className="flex items-start justify-between mb-2">
                   <div>
-                    <h2 className="font-semibold text-zinc-900">{job.title}</h2>
-                    <p className="text-sm text-zinc-500">{job.company}</p>
+                    <h2 className="font-semibold text-slate-900 dark:text-slate-100">{job.title}</h2>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">{job.company}</p>
                   </div>
                   <button
                     onClick={() => handleApply(job.id)}
                     disabled={applyingJob === job.id}
-                    className="rounded-lg bg-indigo-600 px-4 py-2 text-xs font-semibold text-white hover:bg-indigo-700 disabled:opacity-60 shrink-0"
+                    className="flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-violet-600 to-indigo-600 px-3.5 py-1.5 text-xs font-semibold text-white shadow-sm shadow-violet-500/20 hover:opacity-90 disabled:opacity-60 shrink-0 transition-opacity"
                   >
+                    <Zap className="h-3 w-3" />
                     {applyingJob === job.id ? "Scoring…" : "Check ATS Score"}
                   </button>
                 </div>
-                <div className="flex items-center gap-4 text-xs text-zinc-400 mb-3">
+                <div className="flex items-center gap-4 text-xs text-slate-400 dark:text-slate-500 mb-3">
                   {job.location && (
                     <span className="flex items-center gap-1">
                       <MapPin className="h-3 w-3" /> {job.location}
@@ -111,11 +112,11 @@ export default function JobsPage() {
                   )}
                   <span>{new Date(job.posted_at).toLocaleDateString()}</span>
                 </div>
-                <p className="text-sm text-zinc-600 line-clamp-2">{job.description}</p>
+                <p className="text-sm text-slate-600 dark:text-slate-400 line-clamp-2">{job.description}</p>
                 {job.required_skills.length > 0 && (
                   <div className="mt-3 flex flex-wrap gap-1.5">
                     {job.required_skills.map((s) => (
-                      <span key={s} className="rounded-full bg-zinc-100 px-2.5 py-0.5 text-xs text-zinc-600">
+                      <span key={s} className="rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-2.5 py-0.5 text-xs text-slate-600 dark:text-slate-400">
                         {s}
                       </span>
                     ))}
