@@ -26,6 +26,8 @@ class ResumeInDB(ResumeBase):
     extracted_links: ExtractedLinks = Field(default_factory=ExtractedLinks)
     skills: list[str] = []
     sections: dict = {}
+    parser_version: str = "v1"
+    screening_summary: dict = {}
     status: str = "pending"  # pending | parsed | failed
     uploaded_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
@@ -39,6 +41,8 @@ class ResumePublic(ResumeBase):
     extracted_links: ExtractedLinks
     skills: list[str]
     status: str
+    parser_version: str = "v1"
+    screening_summary: dict = {}
     uploaded_at: datetime
     parsed_text: Optional[str] = None
 

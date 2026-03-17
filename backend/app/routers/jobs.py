@@ -1,18 +1,26 @@
 from fastapi import APIRouter, HTTPException, Depends, Query
-from bson import ObjectId
 from datetime import datetime, timezone
 
-from app.database import get_db
 from app.models.job import JobCreate, JobPublic
-from app.services.auth import get_current_user, get_current_recruiter
+from app.services.auth import (
+    get_current_onboarded_recruiter,
+    get_current_onboarded_user,
+)
+from app.services.supabase_db import (
+    SupabaseDBError,
+    create_job as create_job_row,
+    get_job as get_job_row,
+    list_jobs as list_jobs_rows,
+    soft_delete_job_for_recruiter,
+    update_job_for_recruiter,
+)
 
 router = APIRouter()
 
 
 def serialize_job(j: dict) -> JobPublic:
-    j["_id"] = str(j["_id"])
     return JobPublic(
-        id=j["_id"],
+        id=j["id"],
         title=j["title"],
         company=j["company"],
         description=j["description"],
@@ -28,40 +36,41 @@ def serialize_job(j: dict) -> JobPublic:
 @router.post("/create", response_model=JobPublic, status_code=201)
 async def create_job(
     job_data: JobCreate,
-    current_user=Depends(get_current_recruiter),
+    current_user=Depends(get_current_onboarded_recruiter),
 ):
-    db = get_db()
     doc = {
         **job_data.model_dump(),
         "recruiter_id": current_user["_id"],
         "status": "active",
         "posted_at": datetime.now(timezone.utc),
     }
-    result = await db.jobs.insert_one(doc)
-    doc["_id"] = str(result.inserted_id)
-    return serialize_job(doc)
+    try:
+        created = await create_job_row(doc)
+    except SupabaseDBError as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+    return serialize_job(created)
 
 
 @router.get("/list", response_model=list[JobPublic])
 async def list_jobs(
     skip: int = Query(0, ge=0),
     limit: int = Query(20, le=100),
-    _=Depends(get_current_user),
+    _=Depends(get_current_onboarded_user),
 ):
-    db = get_db()
-    cursor = db.jobs.find({"status": "active"}).skip(skip).limit(limit).sort("posted_at", -1)
-    return [serialize_job(j) async for j in cursor]
+    try:
+        rows = await list_jobs_rows(skip=skip, limit=limit)
+    except SupabaseDBError as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+    return [serialize_job(j) for j in rows]
 
 
 @router.get("/{job_id}", response_model=JobPublic)
-async def get_job(job_id: str, _=Depends(get_current_user)):
-    db = get_db()
+async def get_job(job_id: str, _=Depends(get_current_onboarded_user)):
     try:
-        obj_id = ObjectId(job_id)
-    except Exception:
-        raise HTTPException(status_code=400, detail="Invalid job ID")
+        j = await get_job_row(job_id)
+    except SupabaseDBError as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
 
-    j = await db.jobs.find_one({"_id": obj_id})
     if not j:
         raise HTTPException(status_code=404, detail="Job not found")
     return serialize_job(j)
@@ -71,35 +80,28 @@ async def get_job(job_id: str, _=Depends(get_current_user)):
 async def update_job(
     job_id: str,
     job_data: JobCreate,
-    current_user=Depends(get_current_recruiter),
+    current_user=Depends(get_current_onboarded_recruiter),
 ):
-    db = get_db()
     try:
-        obj_id = ObjectId(job_id)
-    except Exception:
-        raise HTTPException(status_code=400, detail="Invalid job ID")
+        result = await update_job_for_recruiter(
+            job_id,
+            current_user["_id"],
+            job_data.model_dump(),
+        )
+    except SupabaseDBError as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
 
-    result = await db.jobs.find_one_and_update(
-        {"_id": obj_id, "recruiter_id": current_user["_id"]},
-        {"$set": job_data.model_dump()},
-        return_document=True,
-    )
     if not result:
         raise HTTPException(status_code=404, detail="Job not found or unauthorized")
     return serialize_job(result)
 
 
 @router.delete("/{job_id}", status_code=204)
-async def delete_job(job_id: str, current_user=Depends(get_current_recruiter)):
-    db = get_db()
+async def delete_job(job_id: str, current_user=Depends(get_current_onboarded_recruiter)):
     try:
-        obj_id = ObjectId(job_id)
-    except Exception:
-        raise HTTPException(status_code=400, detail="Invalid job ID")
+        deleted = await soft_delete_job_for_recruiter(job_id, current_user["_id"])
+    except SupabaseDBError as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
 
-    result = await db.jobs.update_one(
-        {"_id": obj_id, "recruiter_id": current_user["_id"]},
-        {"$set": {"status": "deleted"}},
-    )
-    if result.matched_count == 0:
+    if not deleted:
         raise HTTPException(status_code=404, detail="Job not found or unauthorized")

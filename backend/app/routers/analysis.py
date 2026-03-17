@@ -1,11 +1,16 @@
 from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
-from bson import ObjectId
 from datetime import datetime, timedelta, timezone
 
-from app.database import get_db
-from app.services.auth import get_current_user
+from app.services.auth import get_current_onboarded_student
 from app.services.github_analyzer import fetch_github_profile
 from app.services.link_extractor import extract_github_username
+from app.services.supabase_db import (
+    SupabaseDBError,
+    get_github_analysis as get_github_analysis_row,
+    get_resume_for_user,
+    update_resume,
+    upsert_github_analysis,
+)
 
 router = APIRouter()
 
@@ -14,67 +19,82 @@ router = APIRouter()
 async def analyze_github(
     payload: dict,
     background_tasks: BackgroundTasks,
-    current_user=Depends(get_current_user),
+    current_user=Depends(get_current_onboarded_student),
 ):
     """Trigger GitHub analysis for a username."""
     username = payload.get("username")
     if not username:
         raise HTTPException(status_code=400, detail="Username is required")
 
-    db = get_db()
     # Check cache (24-hour TTL)
-    cached = await db.github_analysis.find_one({"username": username})
+    try:
+        cached = await get_github_analysis_row(username)
+    except SupabaseDBError as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
     if cached:
-        cache_age = datetime.now(timezone.utc) - cached.get("analyzed_at", datetime.min)
+        cached_data = cached.get("data", {})
+        analyzed_at = cached.get("analyzed_at")
+        if analyzed_at:
+            cache_age = datetime.now(timezone.utc) - datetime.fromisoformat(str(analyzed_at).replace("Z", "+00:00"))
+        else:
+            cache_age = timedelta.max
         if cache_age < timedelta(hours=24):
-            cached["_id"] = str(cached["_id"])
-            return cached
+            return cached_data
 
     # Fetch and cache in background
     result = await fetch_github_profile(username)
     if "error" not in result:
-        result["analyzed_at"] = datetime.now(timezone.utc)
-        await db.github_analysis.update_one(
-            {"username": username},
-            {"$set": result},
-            upsert=True,
-        )
+        try:
+            await upsert_github_analysis(
+                {
+                    "username": username,
+                    "data": result,
+                    "analyzed_at": datetime.now(timezone.utc),
+                }
+            )
+        except SupabaseDBError:
+            pass
 
     return result
 
 
 @router.get("/github/{username}")
-async def get_github_analysis(username: str, current_user=Depends(get_current_user)):
+async def get_github_analysis(username: str, current_user=Depends(get_current_onboarded_student)):
     """Get cached GitHub analysis."""
-    db = get_db()
-    cached = await db.github_analysis.find_one({"username": username})
+    try:
+        cached = await get_github_analysis_row(username)
+    except SupabaseDBError as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
     if not cached:
         # Fetch fresh
         result = await fetch_github_profile(username)
         if "error" in result:
             raise HTTPException(status_code=404, detail=result["error"])
-        result["analyzed_at"] = datetime.now(timezone.utc)
-        await db.github_analysis.update_one(
-            {"username": username}, {"$set": result}, upsert=True
-        )
+        try:
+            await upsert_github_analysis(
+                {
+                    "username": username,
+                    "data": result,
+                    "analyzed_at": datetime.now(timezone.utc),
+                }
+            )
+        except SupabaseDBError:
+            pass
         return result
 
-    cached["_id"] = str(cached["_id"])
-    return cached
+    return cached.get("data", {})
 
 
 @router.post("/links/{resume_id}")
-async def analyze_resume_links(resume_id: str, current_user=Depends(get_current_user)):
+async def analyze_resume_links(resume_id: str, current_user=Depends(get_current_onboarded_student)):
     """Analyze all links extracted from a resume."""
-    db = get_db()
     try:
-        obj_id = ObjectId(resume_id)
-    except Exception:
-        raise HTTPException(status_code=400, detail="Invalid resume ID")
+        resume = await get_resume_for_user(resume_id, current_user["_id"])
+    except SupabaseDBError as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
 
-    resume = await db.resumes.find_one(
-        {"_id": obj_id, "user_id": current_user["_id"]}
-    )
     if not resume:
         raise HTTPException(status_code=404, detail="Resume not found")
 
@@ -90,9 +110,9 @@ async def analyze_resume_links(resume_id: str, current_user=Depends(get_current_
             analysis_results["link_score"] = gh_data.get("github_score", 0)
 
     # Store link analysis score in resume doc
-    await db.resumes.update_one(
-        {"_id": obj_id},
-        {"$set": {"link_analysis": analysis_results}},
-    )
+    try:
+        await update_resume(resume_id, {"link_analysis": analysis_results})
+    except SupabaseDBError:
+        pass
 
     return analysis_results

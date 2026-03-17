@@ -1,16 +1,26 @@
 from fastapi import APIRouter, HTTPException, UploadFile, File, Depends
-from bson import ObjectId
 from datetime import datetime, timezone
 
-from app.database import get_db
 from app.models.resume import ResumePublic
-from app.services.auth import get_current_user
+from app.services.auth import get_current_onboarded_student
 from app.services.resume_parser import parse_resume
+from app.services.supabase_db import (
+    SupabaseDBError,
+    delete_resume_for_user,
+    get_resume_for_user,
+    insert_resume,
+    list_resumes_for_user,
+)
 
 router = APIRouter()
 
 MAX_FILE_SIZE = 5 * 1024 * 1024  # 5 MB
 ALLOWED_EXTENSIONS = {".pdf", ".docx", ".doc"}
+ALLOWED_MIME_TYPES = {
+    "application/pdf",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "application/msword",
+}
 
 
 def serialize_resume(r: dict) -> dict:
@@ -18,10 +28,19 @@ def serialize_resume(r: dict) -> dict:
     return r
 
 
+def _looks_like_pdf(file_bytes: bytes) -> bool:
+    return file_bytes.startswith(b"%PDF")
+
+
+def _looks_like_docx(file_bytes: bytes) -> bool:
+    # DOCX is a zip container.
+    return file_bytes.startswith(b"PK\x03\x04")
+
+
 @router.post("/upload", response_model=ResumePublic, status_code=201)
 async def upload_resume(
     file: UploadFile = File(...),
-    current_user=Depends(get_current_user),
+    current_user=Depends(get_current_onboarded_student),
 ):
     # Validate file type
     import os
@@ -32,16 +51,26 @@ async def upload_resume(
             detail="Unsupported file type. Only PDF and DOCX are allowed.",
         )
 
+    if file.content_type and file.content_type not in ALLOWED_MIME_TYPES:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid MIME type for resume upload.",
+        )
+
     file_bytes = await file.read()
     if len(file_bytes) > MAX_FILE_SIZE:
         raise HTTPException(status_code=400, detail="File size exceeds 5MB limit.")
+
+    if ext == ".pdf" and not _looks_like_pdf(file_bytes):
+        raise HTTPException(status_code=400, detail="Uploaded file is not a valid PDF.")
+    if ext in {".docx", ".doc"} and not _looks_like_docx(file_bytes):
+        raise HTTPException(status_code=400, detail="Uploaded file is not a valid DOCX/DOC file.")
 
     try:
         parsed = parse_resume(file_bytes, file.filename or "resume")
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e))
 
-    db = get_db()
     doc = {
         "user_id": current_user["_id"],
         "filename": file.filename,
@@ -49,41 +78,46 @@ async def upload_resume(
         "uploaded_at": datetime.now(timezone.utc),
         **parsed,
     }
-    result = await db.resumes.insert_one(doc)
-    doc["_id"] = str(result.inserted_id)
+    try:
+        created = await insert_resume(doc)
+    except SupabaseDBError as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
 
     return ResumePublic(
-        id=doc["_id"],
-        user_id=doc["user_id"],
-        filename=doc["filename"],
-        file_size=doc["file_size"],
-        extracted_links=doc["extracted_links"],
-        skills=doc["skills"],
-        status=doc["status"],
-        uploaded_at=doc["uploaded_at"],
-        parsed_text=doc.get("parsed_text"),
+        id=created["id"],
+        user_id=created["user_id"],
+        filename=created["filename"],
+        file_size=created.get("file_size"),
+        extracted_links=created.get("extracted_links", {}),
+        skills=created.get("skills", []),
+        status=created.get("status", "parsed"),
+        parser_version=created.get("parser_version", "v1"),
+        screening_summary=created.get("screening_summary", {}),
+        uploaded_at=created["uploaded_at"],
+        parsed_text=created.get("parsed_text"),
     )
 
 
 @router.get("/list", response_model=list[ResumePublic])
-async def list_resumes(current_user=Depends(get_current_user)):
-    db = get_db()
-    cursor = db.resumes.find(
-        {"user_id": current_user["_id"]},
-        {"parsed_text": 0},  # exclude heavy text from list
-    ).sort("uploaded_at", -1)
+async def list_resumes(current_user=Depends(get_current_onboarded_student)):
+    try:
+        rows = await list_resumes_for_user(current_user["_id"], include_parsed_text=False)
+    except SupabaseDBError as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
     results = []
-    async for doc in cursor:
-        doc["_id"] = str(doc["_id"])
+    for doc in rows:
         results.append(
             ResumePublic(
-                id=doc["_id"],
+                id=doc["id"],
                 user_id=doc["user_id"],
                 filename=doc.get("filename", ""),
                 file_size=doc.get("file_size"),
                 extracted_links=doc.get("extracted_links", {}),
                 skills=doc.get("skills", []),
                 status=doc.get("status", "parsed"),
+                parser_version=doc.get("parser_version", "v1"),
+                screening_summary=doc.get("screening_summary", {}),
                 uploaded_at=doc["uploaded_at"],
             )
         )
@@ -91,43 +125,36 @@ async def list_resumes(current_user=Depends(get_current_user)):
 
 
 @router.get("/{resume_id}", response_model=ResumePublic)
-async def get_resume(resume_id: str, current_user=Depends(get_current_user)):
-    db = get_db()
+async def get_resume(resume_id: str, current_user=Depends(get_current_onboarded_student)):
     try:
-        obj_id = ObjectId(resume_id)
-    except Exception:
-        raise HTTPException(status_code=400, detail="Invalid resume ID")
+        doc = await get_resume_for_user(resume_id, current_user["_id"])
+    except SupabaseDBError as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
 
-    doc = await db.resumes.find_one(
-        {"_id": obj_id, "user_id": current_user["_id"]}
-    )
     if not doc:
         raise HTTPException(status_code=404, detail="Resume not found")
 
-    doc["_id"] = str(doc["_id"])
     return ResumePublic(
-        id=doc["_id"],
+        id=doc["id"],
         user_id=doc["user_id"],
         filename=doc.get("filename", ""),
         file_size=doc.get("file_size"),
         extracted_links=doc.get("extracted_links", {}),
         skills=doc.get("skills", []),
         status=doc.get("status", "parsed"),
+        parser_version=doc.get("parser_version", "v1"),
+        screening_summary=doc.get("screening_summary", {}),
         uploaded_at=doc["uploaded_at"],
         parsed_text=doc.get("parsed_text"),
     )
 
 
 @router.delete("/{resume_id}", status_code=204)
-async def delete_resume(resume_id: str, current_user=Depends(get_current_user)):
-    db = get_db()
+async def delete_resume(resume_id: str, current_user=Depends(get_current_onboarded_student)):
     try:
-        obj_id = ObjectId(resume_id)
-    except Exception:
-        raise HTTPException(status_code=400, detail="Invalid resume ID")
+        deleted = await delete_resume_for_user(resume_id, current_user["_id"])
+    except SupabaseDBError as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
 
-    result = await db.resumes.delete_one(
-        {"_id": obj_id, "user_id": current_user["_id"]}
-    )
-    if result.deleted_count == 0:
+    if not deleted:
         raise HTTPException(status_code=404, detail="Resume not found")

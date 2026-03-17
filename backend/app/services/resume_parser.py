@@ -1,9 +1,10 @@
 import io
 import re
-from typing import Optional
 
 from app.models.resume import ExtractedLinks
 from app.services.link_extractor import extract_all_links
+
+PARSER_VERSION = "v1.1"
 
 # Tech skills database (subset — extend as needed)
 TECH_SKILLS = [
@@ -52,7 +53,7 @@ def extract_text_from_pdf(file_bytes: bytes) -> str:
         except Exception:
             pass
 
-    return text.strip()
+    return normalize_text(text)
 
 
 def extract_text_from_docx(file_bytes: bytes) -> str:
@@ -60,9 +61,17 @@ def extract_text_from_docx(file_bytes: bytes) -> str:
     try:
         from docx import Document
         doc = Document(io.BytesIO(file_bytes))
-        return "\n".join(para.text for para in doc.paragraphs if para.text.strip())
+        text = "\n".join(para.text for para in doc.paragraphs if para.text.strip())
+        return normalize_text(text)
     except Exception as e:
         raise ValueError(f"Failed to parse DOCX: {e}")
+
+
+def normalize_text(text: str) -> str:
+    """Normalize whitespace while preserving line boundaries."""
+    lines = [re.sub(r"\s+", " ", line).strip() for line in text.splitlines()]
+    cleaned = "\n".join(line for line in lines if line)
+    return cleaned.strip()
 
 
 def extract_skills(text: str) -> list[str]:
@@ -119,17 +128,25 @@ def parse_resume(file_bytes: bytes, filename: str) -> dict:
     else:
         raise ValueError("Unsupported file type. Only PDF and DOCX are allowed.")
 
-    if not text:
+    if not text or len(text) < 40:
         raise ValueError("Could not extract text from resume.")
 
     links: ExtractedLinks = extract_all_links(text)
     skills = extract_skills(text)
     sections = extract_sections(text)
+    screening_summary = {
+        "word_count": len(text.split()),
+        "skills_count": len(skills),
+        "sections_detected": list(sections.keys()),
+        "links_found": len([v for v in links.model_dump().values() if v]),
+    }
 
     return {
         "parsed_text": text,
         "extracted_links": links.model_dump(),
         "skills": skills,
         "sections": sections,
+        "parser_version": PARSER_VERSION,
+        "screening_summary": screening_summary,
         "status": "parsed",
     }
