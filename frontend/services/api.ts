@@ -23,7 +23,17 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (res) => res,
   (error) => {
-    if (error.response?.status === 401 && typeof window !== "undefined") {
+    const requestUrl = String(error?.config?.url || "");
+    const isBootstrapAuthRequest =
+      requestUrl.includes("/api/v1/auth/google") ||
+      requestUrl.includes("/api/v1/auth/login") ||
+      requestUrl.includes("/api/v1/auth/register");
+
+    if (
+      error.response?.status === 401 &&
+      typeof window !== "undefined" &&
+      !isBootstrapAuthRequest
+    ) {
       localStorage.removeItem("access_token");
       window.location.href = "/login";
     }

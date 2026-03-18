@@ -71,7 +71,7 @@ async def google_login(payload: GoogleLoginRequest):
             onboarding_completed=user_public.onboarding_completed,
         )
     except SupabaseAuthError as e:
-        raise HTTPException(status_code=401, detail=str(e))
+        raise HTTPException(status_code=e.status_code, detail=str(e))
 
 
 @router.post("/register", response_model=TokenResponse, status_code=201)

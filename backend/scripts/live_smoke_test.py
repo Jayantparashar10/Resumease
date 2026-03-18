@@ -37,7 +37,7 @@ def _supabase_headers(service: bool = False) -> dict:
 
 
 async def _create_supabase_user_token() -> tuple[str, str]:
-    email = f"resumease_{uuid.uuid4().hex[:10]}@example.com"
+    email = f"resumease_{uuid.uuid4().hex[:10]}@resumase.dev"
     password = f"TmpPass_{uuid.uuid4().hex[:12]}"
 
     async with httpx.AsyncClient(timeout=30) as client:

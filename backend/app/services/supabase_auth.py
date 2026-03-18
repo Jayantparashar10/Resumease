@@ -9,15 +9,19 @@ from app.config import settings
 class SupabaseAuthError(Exception):
     """Raised when Supabase auth or profile calls fail."""
 
+    def __init__(self, message: str, status_code: int = 500):
+        super().__init__(message)
+        self.status_code = status_code
+
 
 def _require_supabase_config() -> None:
     if not settings.SUPABASE_URL or not settings.SUPABASE_ANON_KEY:
-        raise SupabaseAuthError("Supabase URL/Anon key is not configured")
+        raise SupabaseAuthError("Supabase URL/Anon key is not configured", status_code=500)
 
 
 def _service_headers() -> dict[str, str]:
     if not settings.SUPABASE_SERVICE_ROLE_KEY:
-        raise SupabaseAuthError("SUPABASE_SERVICE_ROLE_KEY is not configured")
+        raise SupabaseAuthError("SUPABASE_SERVICE_ROLE_KEY is not configured", status_code=500)
     return {
         "apikey": settings.SUPABASE_SERVICE_ROLE_KEY,
         "Authorization": f"Bearer {settings.SUPABASE_SERVICE_ROLE_KEY}",
@@ -44,7 +48,10 @@ async def exchange_google_token_for_session(id_token: str) -> dict[str, Any]:
         resp = await client.post(url, json=payload, headers=_anon_headers())
 
     if resp.status_code >= 400:
-        raise SupabaseAuthError(f"Supabase token exchange failed: {resp.text}")
+        raise SupabaseAuthError(
+            f"Supabase token exchange failed: {resp.text}",
+            status_code=resp.status_code,
+        )
 
     data = resp.json()
     if not data.get("access_token") or not data.get("user"):
@@ -66,7 +73,7 @@ async def get_user_from_access_token(access_token: str) -> dict[str, Any]:
         resp = await client.get(url, headers=headers)
 
     if resp.status_code >= 400:
-        raise SupabaseAuthError("Invalid or expired Supabase access token")
+        raise SupabaseAuthError("Invalid or expired Supabase access token", status_code=401)
 
     return resp.json()
 
@@ -79,7 +86,7 @@ async def upsert_profile_from_user(user: dict[str, Any]) -> dict[str, Any]:
     now_iso = datetime.now(timezone.utc).isoformat()
 
     if not user_id or not email:
-        raise SupabaseAuthError("Supabase user payload missing id/email")
+        raise SupabaseAuthError("Supabase user payload missing id/email", status_code=500)
 
     profile_row = {
         "user_id": user_id,
@@ -104,7 +111,10 @@ async def upsert_profile_from_user(user: dict[str, Any]) -> dict[str, Any]:
         resp = await client.post(url, json=[profile_row], headers=headers)
 
     if resp.status_code >= 400:
-        raise SupabaseAuthError(f"Supabase profile upsert failed: {resp.text}")
+        raise SupabaseAuthError(
+            f"Supabase profile upsert failed: {resp.text}",
+            status_code=resp.status_code,
+        )
 
     rows = resp.json() or []
     return rows[0] if rows else profile_row
@@ -119,7 +129,10 @@ async def get_profile(user_id: str) -> dict[str, Any] | None:
         resp = await client.get(url, headers=headers, params=params)
 
     if resp.status_code >= 400:
-        raise SupabaseAuthError(f"Supabase profile query failed: {resp.text}")
+        raise SupabaseAuthError(
+            f"Supabase profile query failed: {resp.text}",
+            status_code=resp.status_code,
+        )
 
     rows = resp.json() or []
     return rows[0] if rows else None
@@ -142,9 +155,12 @@ async def update_profile(user_id: str, updates: dict[str, Any]) -> dict[str, Any
         resp = await client.patch(url, headers=headers, params=params, json=body)
 
     if resp.status_code >= 400:
-        raise SupabaseAuthError(f"Supabase profile update failed: {resp.text}")
+        raise SupabaseAuthError(
+            f"Supabase profile update failed: {resp.text}",
+            status_code=resp.status_code,
+        )
 
     rows = resp.json() or []
     if not rows:
-        raise SupabaseAuthError("Supabase profile update returned no row")
+        raise SupabaseAuthError("Supabase profile update returned no row", status_code=500)
     return rows[0]

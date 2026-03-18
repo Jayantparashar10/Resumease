@@ -38,6 +38,9 @@ export default function OnboardingForm() {
       .map((item) => item.trim())
       .filter(Boolean);
 
+  const inputClass = "w-full rounded-lg border-2 border-zinc-200 bg-zinc-50 px-4 py-3 text-sm font-medium text-zinc-900 placeholder-zinc-400 focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500 transition-colors";
+  const labelClass = "block text-xs font-semibold uppercase tracking-wide text-zinc-600 mb-2";
+
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
     setLoading(true);
@@ -79,108 +82,141 @@ export default function OnboardingForm() {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 rounded-2xl border bg-white p-6">
+    <form onSubmit={handleSubmit} className="space-y-6 rounded-2xl border bg-white p-8">
       <div>
-        <p className="mb-2 text-sm font-medium text-zinc-700">I am joining as</p>
-        <div className="grid grid-cols-2 gap-2">
+        <p className="mb-4 text-sm font-semibold text-zinc-700 uppercase tracking-wide">I am joining as</p>
+        <div className="grid grid-cols-2 gap-3">
           <button
             type="button"
             onClick={() => setRole("student")}
-            className={`rounded-lg border px-3 py-2 text-sm font-medium ${
-              role === "student" ? "border-indigo-500 bg-indigo-50 text-indigo-700" : "border-zinc-300"
+            className={`rounded-lg border-2 px-4 py-3 text-sm font-semibold transition-all ${
+              role === "student" 
+                ? "border-indigo-500 bg-indigo-50 text-indigo-700 shadow-sm" 
+                : "border-zinc-200 bg-zinc-50 text-zinc-700 hover:border-zinc-300"
             }`}
           >
-            Student
+            👨‍🎓 Student
           </button>
           <button
             type="button"
             onClick={() => setRole("recruiter")}
-            className={`rounded-lg border px-3 py-2 text-sm font-medium ${
-              role === "recruiter" ? "border-indigo-500 bg-indigo-50 text-indigo-700" : "border-zinc-300"
+            className={`rounded-lg border-2 px-4 py-3 text-sm font-semibold transition-all ${
+              role === "recruiter" 
+                ? "border-indigo-500 bg-indigo-50 text-indigo-700 shadow-sm" 
+                : "border-zinc-200 bg-zinc-50 text-zinc-700 hover:border-zinc-300"
             }`}
           >
-            Recruiter
+            💼 Recruiter
           </button>
         </div>
       </div>
 
       {role === "student" ? (
-        <>
-          <input
-            required
-            value={student.college}
-            onChange={(e) => setStudent((prev) => ({ ...prev, college: e.target.value }))}
-            className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
-            placeholder="College"
-          />
-          <input
-            required
-            value={student.degree}
-            onChange={(e) => setStudent((prev) => ({ ...prev, degree: e.target.value }))}
-            className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
-            placeholder="Degree"
-          />
-          <input
-            required
-            type="number"
-            min={2000}
-            max={2100}
-            value={student.graduation_year}
-            onChange={(e) => setStudent((prev) => ({ ...prev, graduation_year: Number(e.target.value) }))}
-            className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
-            placeholder="Graduation year"
-          />
-          <input
-            value={student.target_roles}
-            onChange={(e) => setStudent((prev) => ({ ...prev, target_roles: e.target.value }))}
-            className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
-            placeholder="Target roles (comma-separated)"
-          />
-          <input
-            value={student.skills_self_reported}
-            onChange={(e) => setStudent((prev) => ({ ...prev, skills_self_reported: e.target.value }))}
-            className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
-            placeholder="Skills (comma-separated)"
-          />
-        </>
+        <div className="space-y-5 pt-4">
+          <div>
+            <label className={labelClass}>College/University</label>
+            <input
+              required
+              value={student.college}
+              onChange={(e) => setStudent((prev) => ({ ...prev, college: e.target.value }))}
+              className={inputClass}
+              placeholder="e.g., MIT, Stanford, Delhi University"
+            />
+          </div>
+          <div>
+            <label className={labelClass}>Degree</label>
+            <input
+              required
+              value={student.degree}
+              onChange={(e) => setStudent((prev) => ({ ...prev, degree: e.target.value }))}
+              className={inputClass}
+              placeholder="e.g., B.Tech Computer Science, B.Sc Physics"
+            />
+          </div>
+          <div>
+            <label className={labelClass}>Graduation Year</label>
+            <input
+              required
+              type="number"
+              min={2000}
+              max={2100}
+              value={student.graduation_year}
+              onChange={(e) => setStudent((prev) => ({ ...prev, graduation_year: Number(e.target.value) }))}
+              className={inputClass}
+            />
+          </div>
+          <div>
+            <label className={labelClass}>Target Roles</label>
+            <input
+              value={student.target_roles}
+              onChange={(e) => setStudent((prev) => ({ ...prev, target_roles: e.target.value }))}
+              className={inputClass}
+              placeholder="e.g., Frontend Engineer, Data Scientist, Product Manager"
+            />
+            <p className="mt-1 text-xs text-zinc-500">Separate multiple roles with commas</p>
+          </div>
+          <div>
+            <label className={labelClass}>Skills</label>
+            <input
+              value={student.skills_self_reported}
+              onChange={(e) => setStudent((prev) => ({ ...prev, skills_self_reported: e.target.value }))}
+              className={inputClass}
+              placeholder="e.g., Python, React, Machine Learning, SQL"
+            />
+            <p className="mt-1 text-xs text-zinc-500">Separate multiple skills with commas</p>
+          </div>
+        </div>
       ) : (
-        <>
-          <input
-            required
-            value={recruiter.company}
-            onChange={(e) => setRecruiter((prev) => ({ ...prev, company: e.target.value }))}
-            className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
-            placeholder="Company"
-          />
-          <input
-            required
-            value={recruiter.designation}
-            onChange={(e) => setRecruiter((prev) => ({ ...prev, designation: e.target.value }))}
-            className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
-            placeholder="Designation"
-          />
-          <input
-            value={recruiter.hiring_for}
-            onChange={(e) => setRecruiter((prev) => ({ ...prev, hiring_for: e.target.value }))}
-            className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
-            placeholder="Hiring for (comma-separated)"
-          />
-          <input
-            required
-            value={recruiter.company_size}
-            onChange={(e) => setRecruiter((prev) => ({ ...prev, company_size: e.target.value }))}
-            className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
-            placeholder="Company size"
-          />
-        </>
+        <div className="space-y-5 pt-4">
+          <div>
+            <label className={labelClass}>Company Name</label>
+            <input
+              required
+              value={recruiter.company}
+              onChange={(e) => setRecruiter((prev) => ({ ...prev, company: e.target.value }))}
+              className={inputClass}
+              placeholder="e.g., Google, Microsoft, Accenture"
+            />
+          </div>
+          <div>
+            <label className={labelClass}>Your Designation</label>
+            <input
+              required
+              value={recruiter.designation}
+              onChange={(e) => setRecruiter((prev) => ({ ...prev, designation: e.target.value }))}
+              className={inputClass}
+              placeholder="e.g., Hiring Manager, Tech Lead, HR Manager"
+            />
+          </div>
+          <div>
+            <label className={labelClass}>Currently Hiring For</label>
+            <input
+              value={recruiter.hiring_for}
+              onChange={(e) => setRecruiter((prev) => ({ ...prev, hiring_for: e.target.value }))}
+              className={inputClass}
+              placeholder="e.g., Software Engineer, Data Scientist, Product Manager"
+            />
+            <p className="mt-1 text-xs text-zinc-500">Separate multiple positions with commas</p>
+          </div>
+          <div>
+            <label className={labelClass}>Company Size</label>
+            <input
+              required
+              value={recruiter.company_size}
+              onChange={(e) => setRecruiter((prev) => ({ ...prev, company_size: e.target.value }))}
+              className={inputClass}
+              placeholder="e.g., 50-200, 1000+, Early-stage startup"
+            />
+          </div>
+        </div>
       )}
 
       <button
         type="submit"
         disabled={loading}
-        className="w-full rounded-lg bg-indigo-600 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-60"
+        className="mt-8 w-full rounded-lg bg-indigo-600 py-3 text-sm font-semibold text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-60 transition-colors"
       >
-        {loading ? "Saving..." : "Complete onboarding"}
+        {loading ? "Saving your onboarding..." : "✓ Complete onboarding"}
       </button>
     </form>
   );
