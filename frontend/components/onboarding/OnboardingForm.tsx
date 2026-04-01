@@ -38,8 +38,8 @@ export default function OnboardingForm() {
       .map((item) => item.trim())
       .filter(Boolean);
 
-  const inputClass = "w-full rounded-lg border-2 border-zinc-200 bg-zinc-50 px-4 py-3 text-sm font-medium text-zinc-900 placeholder-zinc-400 focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500 transition-colors";
-  const labelClass = "block text-xs font-semibold uppercase tracking-wide text-zinc-600 mb-2";
+  const inputClass = "w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 px-4 py-3 text-sm font-medium text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:border-violet-500 dark:focus:border-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-500/20 transition-colors";
+  const labelClass = "block text-xs font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-400 mb-2";
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
@@ -82,17 +82,17 @@ export default function OnboardingForm() {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6 rounded-2xl border bg-white p-8">
+    <form onSubmit={handleSubmit} className="space-y-6 rounded-2xl border border-slate-200/80 dark:border-slate-700/60 bg-white dark:bg-slate-900 p-8 shadow-xl shadow-slate-200/50 dark:shadow-slate-950/50">
       <div>
-        <p className="mb-4 text-sm font-semibold text-zinc-700 uppercase tracking-wide">I am joining as</p>
+        <p className="mb-4 text-sm font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wide">I am joining as</p>
         <div className="grid grid-cols-2 gap-3">
           <button
             type="button"
             onClick={() => setRole("student")}
-            className={`rounded-lg border-2 px-4 py-3 text-sm font-semibold transition-all ${
-              role === "student" 
-                ? "border-indigo-500 bg-indigo-50 text-indigo-700 shadow-sm" 
-                : "border-zinc-200 bg-zinc-50 text-zinc-700 hover:border-zinc-300"
+            className={`rounded-lg border px-4 py-3 text-sm font-semibold transition-all ${
+              role === "student"
+                ? "border-violet-500 bg-violet-50 dark:bg-violet-950/50 text-violet-700 dark:text-violet-300 shadow-sm"
+                : "border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 text-slate-700 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
             }`}
           >
             👨‍🎓 Student
@@ -100,10 +100,10 @@ export default function OnboardingForm() {
           <button
             type="button"
             onClick={() => setRole("recruiter")}
-            className={`rounded-lg border-2 px-4 py-3 text-sm font-semibold transition-all ${
-              role === "recruiter" 
-                ? "border-indigo-500 bg-indigo-50 text-indigo-700 shadow-sm" 
-                : "border-zinc-200 bg-zinc-50 text-zinc-700 hover:border-zinc-300"
+            className={`rounded-lg border px-4 py-3 text-sm font-semibold transition-all ${
+              role === "recruiter"
+                ? "border-violet-500 bg-violet-50 dark:bg-violet-950/50 text-violet-700 dark:text-violet-300 shadow-sm"
+                : "border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 text-slate-700 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
             }`}
           >
             💼 Recruiter
@@ -153,7 +153,7 @@ export default function OnboardingForm() {
               className={inputClass}
               placeholder="e.g., Frontend Engineer, Data Scientist, Product Manager"
             />
-            <p className="mt-1 text-xs text-zinc-500">Separate multiple roles with commas</p>
+            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Separate multiple roles with commas</p>
           </div>
           <div>
             <label className={labelClass}>Skills</label>
@@ -214,7 +214,7 @@ export default function OnboardingForm() {
       <button
         type="submit"
         disabled={loading}
-        className="mt-8 w-full rounded-lg bg-indigo-600 py-3 text-sm font-semibold text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-60 transition-colors"
+        className="mt-8 w-full rounded-lg bg-gradient-to-r from-violet-600 to-indigo-600 py-3 text-sm font-semibold text-white shadow-sm shadow-violet-500/25 hover:opacity-90 disabled:opacity-60 transition-opacity"
       >
         {loading ? "Saving your onboarding..." : "✓ Complete onboarding"}
       </button>
