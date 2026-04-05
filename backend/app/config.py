@@ -1,4 +1,5 @@
 import os
+import json
 from functools import lru_cache
 from pathlib import Path
 
@@ -34,6 +35,24 @@ def _get_list_env(key: str, default: list[str]) -> list[str]:
     return [item.strip() for item in raw.split(",") if item.strip()]
 
 
+def _parse_cors_origins(value: str) -> list[str]:
+    raw = (value or "").strip()
+    if not raw:
+        return []
+
+    # Accept JSON array format: ["https://a.com", "https://b.com"]
+    if raw.startswith("["):
+        try:
+            parsed = json.loads(raw)
+            if isinstance(parsed, list):
+                return [str(item).strip().rstrip("/") for item in parsed if str(item).strip()]
+        except json.JSONDecodeError:
+            pass
+
+    # Accept comma-separated format: https://a.com,https://b.com
+    return [item.strip().rstrip("/") for item in raw.split(",") if item.strip()]
+
+
 class Settings(BaseSettings):
     # App
     APP_NAME: str = os.getenv("APP_NAME", "ResumeAse ATS API")
@@ -65,14 +84,15 @@ class Settings(BaseSettings):
     CEREBRAS_API_KEY: str = os.getenv("CEREBRAS_API_KEY", "")
     CEREBRAS_MODEL: str = os.getenv("CEREBRAS_MODEL", "")
 
-    # CORS
-    CORS_ORIGINS: list[str] = _get_list_env(
+    # CORS (string env to avoid pydantic complex JSON parsing errors on serverless)
+    CORS_ORIGINS: str = os.getenv(
         "CORS_ORIGINS",
-        [
-            "http://localhost:3000",
-            "http://localhost:3001",
-        ],
+        "https://resumease-seven.vercel.app,http://localhost:3000,http://localhost:3001",
     )
+
+    @property
+    def cors_origins_list(self) -> list[str]:
+        return _parse_cors_origins(self.CORS_ORIGINS)
 
     class Config:
         env_file = str(BACKEND_ROOT / ".env")
