@@ -8,6 +8,7 @@ python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
 python-multipart==0.0.9
 google-auth==2.38.0
+slowapi==0.1.9
 
 # Validation
 pydantic==2.6.3

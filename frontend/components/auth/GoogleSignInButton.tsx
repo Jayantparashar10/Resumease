@@ -88,7 +88,7 @@ export default function GoogleSignInButton() {
   if (!process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID) {
     return (
       <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
-        Set <code>NEXT_PUBLIC_GOOGLE_CLIENT_ID</code> to enable Google sign-in.
+        Google sign-in is currently unavailable. Please try again later.
       </p>
     );
   }

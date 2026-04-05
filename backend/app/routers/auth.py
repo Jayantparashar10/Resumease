@@ -1,15 +1,14 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Request
 from datetime import datetime, timezone
 
 from app.config import settings
+from app.middleware.rate_limit import limiter
 from app.models.user import (
     GoogleLoginRequest,
     OnboardingRequest,
     ProfileUpdateRequest,
     RecruiterOnboardingData,
     StudentOnboardingData,
-    UserCreate,
-    UserLogin,
     UserPublic,
     TokenResponse,
 )
@@ -19,16 +18,32 @@ from app.services.auth import (
 from app.services.supabase_auth import (
     SupabaseAuthError,
     exchange_google_token_for_session,
+    logout as supabase_logout,
     update_profile as update_supabase_profile,
     upsert_profile_from_user,
 )
 
+import re
+import logging
+
+logger = logging.getLogger(__name__)
+
 router = APIRouter()
 
+# Only allow safe URL schemes for stored avatar URLs
+_SAFE_URL_PATTERN = re.compile(r"^https?://", re.IGNORECASE)
 
-def serialize_user(user: dict) -> dict:
-    user["_id"] = str(user["_id"])
-    return user
+
+def _sanitize_avatar_url(url: str | None) -> str | None:
+    """Reject non-http(s) URLs to prevent javascript: and data: scheme injection."""
+    if url is None:
+        return None
+    if not _SAFE_URL_PATTERN.match(url):
+        raise HTTPException(
+            status_code=422,
+            detail="avatar_url must start with http:// or https://",
+        )
+    return url
 
 
 def to_public_user(doc: dict) -> UserPublic:
@@ -46,7 +61,12 @@ def to_public_user(doc: dict) -> UserPublic:
 
 
 @router.post("/google", response_model=TokenResponse)
-async def google_login(payload: GoogleLoginRequest):
+@limiter.limit("10/minute")
+async def google_login(request: Request, payload: GoogleLoginRequest):
+    """Exchange a Google ID token for a Supabase session.
+
+    Rate-limited to 10 requests per minute per IP to prevent abuse.
+    """
     try:
         session_data = await exchange_google_token_for_session(payload.id_token)
         access_token = session_data["access_token"]
@@ -74,19 +94,23 @@ async def google_login(payload: GoogleLoginRequest):
         raise HTTPException(status_code=e.status_code, detail=str(e))
 
 
-@router.post("/register", response_model=TokenResponse, status_code=201)
-async def register(user_data: UserCreate):
-    raise HTTPException(status_code=400, detail="Use Google sign-in with Supabase Auth")
-
-
-@router.post("/login", response_model=TokenResponse)
-async def login(credentials: UserLogin):
-    raise HTTPException(status_code=400, detail="Use Google sign-in with Supabase Auth")
-
-
 @router.get("/me", response_model=UserPublic)
 async def me(current_user=Depends(get_current_user)):
     return to_public_user(current_user)
+
+
+@router.post("/logout", status_code=204)
+async def logout(request: Request, current_user=Depends(get_current_user)):
+    """Revoke the Supabase session server-side and invalidate the access token."""
+    credentials = request.headers.get("Authorization", "")
+    token = credentials.removeprefix("Bearer ").strip()
+    if token:
+        try:
+            await supabase_logout(token)
+        except SupabaseAuthError as exc:
+            # Log the error but don't block the client from logging out
+            logger.warning("Supabase logout returned an error: %s", exc)
+    return None
 
 
 @router.post("/onboarding", response_model=UserPublic)
@@ -94,9 +118,6 @@ async def complete_onboarding(
     payload: OnboardingRequest,
     current_user=Depends(get_current_user),
 ):
-    if current_user.get("onboarding_completed") and payload.role != current_user.get("role"):
-        raise HTTPException(status_code=400, detail="Role cannot be changed after onboarding")
-
     if current_user.get("onboarding_completed") and payload.role != current_user.get("role"):
         raise HTTPException(status_code=400, detail="Role cannot be changed after onboarding")
 
@@ -139,11 +160,11 @@ async def update_profile(
     payload: ProfileUpdateRequest,
     current_user=Depends(get_current_user),
 ):
-    updates = {}
+    updates: dict = {}
     if payload.full_name is not None:
         updates["full_name"] = payload.full_name
     if payload.avatar_url is not None:
-        updates["avatar_url"] = payload.avatar_url
+        updates["avatar_url"] = _sanitize_avatar_url(payload.avatar_url)
 
     if payload.onboarding_data is not None:
         try:

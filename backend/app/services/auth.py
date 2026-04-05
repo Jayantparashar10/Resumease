@@ -1,55 +1,38 @@
-from datetime import datetime, timedelta, timezone
-from typing import Optional
-from jose import JWTError, jwt
-from passlib.context import CryptContext
+"""
+Auth service helpers for FastAPI dependency injection.
+
+This application delegates all authentication to Supabase Auth. Tokens are
+issued and verified by Supabase; we never mint our own JWTs. The functions
+below are pure FastAPI `Depends`-compatible helpers that validate the
+Supabase-issued Bearer token on each request and enrich it with profile data.
+
+NOTE: hash_password / verify_password / create_access_token / decode_token
+were removed. They were dead code — Supabase manages credentials. Leaving
+home-grown password utilities alongside a delegation-based auth system is a
+maintenance hazard and invites future misuse.
+"""
+
+from datetime import datetime, timezone
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
-from app.config import settings
 from app.services.supabase_auth import (
     SupabaseAuthError,
     get_profile,
     get_user_from_access_token,
 )
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 security = HTTPBearer()
-
-
-def hash_password(password: str) -> str:
-    return pwd_context.hash(password)
-
-
-def verify_password(plain_password: str, hashed_password: str) -> bool:
-    return pwd_context.verify(plain_password, hashed_password)
-
-
-def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
-    to_encode = data.copy()
-    expire = datetime.now(timezone.utc) + (
-        expires_delta or timedelta(hours=settings.JWT_EXPIRE_HOURS)
-    )
-    to_encode.update({"exp": expire})
-    return jwt.encode(to_encode, settings.JWT_SECRET, algorithm=settings.JWT_ALGORITHM)
-
-
-def decode_token(token: str) -> dict:
-    try:
-        payload = jwt.decode(
-            token, settings.JWT_SECRET, algorithms=[settings.JWT_ALGORITHM]
-        )
-        return payload
-    except JWTError:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Could not validate credentials",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
 
 
 async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
-):
+) -> dict:
+    """Validate the Supabase Bearer token and return a merged user dict.
+
+    Raises HTTP 401 if the token is missing, expired, or invalid.
+    Raises HTTP 403 if the account is deactivated.
+    """
     token = credentials.credentials
     try:
         sb_user = await get_user_from_access_token(token)
@@ -68,7 +51,11 @@ async def get_current_user(
                 or (email.split("@")[0] if email else "user")
             ),
             "role": (profile or {}).get("role", "student"),
-            "avatar_url": (profile or {}).get("avatar_url") or metadata.get("avatar_url") or metadata.get("picture"),
+            "avatar_url": (
+                (profile or {}).get("avatar_url")
+                or metadata.get("avatar_url")
+                or metadata.get("picture")
+            ),
             "onboarding_completed": (profile or {}).get("onboarding_completed", False),
             "onboarding_data": (profile or {}).get("onboarding_data", {}),
             "created_at": (profile or {}).get("created_at") or datetime.now(timezone.utc),
@@ -76,32 +63,51 @@ async def get_current_user(
         }
 
         if not merged_user.get("is_active", True):
-            raise HTTPException(status_code=403, detail="User account is inactive")
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="User account is inactive",
+            )
 
         return merged_user
     except SupabaseAuthError as exc:
-        raise HTTPException(status_code=401, detail=str(exc))
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication failed",  # Never forward raw Supabase error text
+            headers={"WWW-Authenticate": "Bearer"},
+        ) from exc
 
 
-async def get_current_onboarded_user(user=Depends(get_current_user)):
+async def get_current_onboarded_user(user=Depends(get_current_user)) -> dict:
     if not user.get("onboarding_completed", False):
-        raise HTTPException(status_code=403, detail="Complete onboarding to access this resource")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Complete onboarding to access this resource",
+        )
     return user
 
 
-async def get_current_onboarded_student(user=Depends(get_current_onboarded_user)):
+async def get_current_onboarded_student(user=Depends(get_current_onboarded_user)) -> dict:
     if user.get("role") != "student":
-        raise HTTPException(status_code=403, detail="Student access required")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Student access required",
+        )
     return user
 
 
-async def get_current_recruiter(user=Depends(get_current_user)):
+async def get_current_recruiter(user=Depends(get_current_user)) -> dict:
     if user.get("role") != "recruiter":
-        raise HTTPException(status_code=403, detail="Recruiter access required")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Recruiter access required",
+        )
     return user
 
 
-async def get_current_onboarded_recruiter(user=Depends(get_current_onboarded_user)):
+async def get_current_onboarded_recruiter(user=Depends(get_current_onboarded_user)) -> dict:
     if user.get("role") != "recruiter":
-        raise HTTPException(status_code=403, detail="Recruiter access required")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Recruiter access required",
+        )
     return user

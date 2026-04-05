@@ -1,4 +1,5 @@
 import axios from "axios";
+import { getAccessToken } from "@/context/AuthContext";
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
@@ -8,33 +9,29 @@ export const api = axios.create({
   headers: { "Content-Type": "application/json" },
 });
 
-// Attach JWT token from localStorage on every request
+// Attach JWT token from in-memory storage on every request.
+// The token is managed by AuthContext and never written to localStorage.
 api.interceptors.request.use((config) => {
-  if (typeof window !== "undefined") {
-    const token = localStorage.getItem("access_token");
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
+  const token = getAccessToken();
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
 });
 
-// Global 401 handler — clear token and redirect to login
+// Global 401 handler — redirect to login when session expires
 api.interceptors.response.use(
   (res) => res,
   (error) => {
     const requestUrl = String(error?.config?.url || "");
-    const isBootstrapAuthRequest =
-      requestUrl.includes("/api/v1/auth/google") ||
-      requestUrl.includes("/api/v1/auth/login") ||
-      requestUrl.includes("/api/v1/auth/register");
+    const isBootstrapAuthRequest = requestUrl.includes("/api/v1/auth/google");
 
     if (
       error.response?.status === 401 &&
       typeof window !== "undefined" &&
       !isBootstrapAuthRequest
     ) {
-      localStorage.removeItem("access_token");
+      // Redirect to login; AuthContext will handle cleanup on next mount
       window.location.href = "/login";
     }
     return Promise.reject(error);
@@ -75,16 +72,6 @@ export const authApi = {
   googleLogin: (id_token: string) =>
     api.post<AuthResponse>("/api/v1/auth/google", { id_token }),
 
-  register: (data: {
-    email: string;
-    password: string;
-    full_name: string;
-    role: "student" | "recruiter";
-  }) => api.post<AuthResponse>("/api/v1/auth/register", data),
-
-  login: (email: string, password: string) =>
-    api.post<AuthResponse>("/api/v1/auth/login", { email, password }),
-
   me: () => api.get<User>("/api/v1/auth/me"),
 
   completeOnboarding: (payload: OnboardingPayload) =>
@@ -93,7 +80,10 @@ export const authApi = {
   updateProfile: (payload: ProfileUpdatePayload) =>
     api.put<User>("/api/v1/auth/profile", payload),
 
-  logout: () => Promise.resolve(),
+  logout: () =>
+    api.post("/api/v1/auth/logout").catch(() => {
+      // Best-effort: don't block UI logout if the server call fails
+    }),
 };
 
 // ── Resumes ───────────────────────────────────────────────────────

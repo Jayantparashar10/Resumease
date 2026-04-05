@@ -1,9 +1,14 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
 
 from app.config import settings
 from app.database import connect_db, close_db
+from app.middleware.rate_limit import limiter
 from app.routers import auth, resumes, jobs, analysis, ats
 
 
@@ -14,21 +19,32 @@ async def lifespan(app: FastAPI):
     await close_db()
 
 
+# Expose interactive API docs in development only.
+_docs_url = "/docs" if settings.ENVIRONMENT == "development" else None
+_redoc_url = "/redoc" if settings.ENVIRONMENT == "development" else None
+
 app = FastAPI(
     title=settings.APP_NAME,
     version=settings.APP_VERSION,
     lifespan=lifespan,
-    docs_url="/docs",
-    redoc_url="/redoc",
+    docs_url=_docs_url,
+    redoc_url=_redoc_url,
+    # Suppress OpenAPI schema endpoint in production as well
+    openapi_url="/openapi.json" if settings.ENVIRONMENT == "development" else None,
 )
 
-# CORS
+# Rate limiter — must be attached before other middleware
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.add_middleware(SlowAPIMiddleware)
+
+# CORS — only known origins, only necessary methods and headers
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.CORS_ORIGINS,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type"],
 )
 
 # Routers
