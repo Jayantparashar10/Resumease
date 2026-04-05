@@ -2,6 +2,9 @@ from datetime import datetime
 from typing import Any
 
 import httpx
+import logging
+
+logger = logging.getLogger(__name__)
 
 from app.config import settings
 
@@ -55,7 +58,8 @@ async def _request(
         )
 
     if resp.status_code >= 400:
-        raise SupabaseDBError(f"Supabase {table} {method} failed: {resp.text}")
+        logger.error("Supabase %s %s failed [%d]: %s", table, method, resp.status_code, resp.text)
+        raise SupabaseDBError(f"Database operation failed")
 
     if not resp.text:
         return None

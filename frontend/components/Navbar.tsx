@@ -63,7 +63,7 @@ export default function Navbar() {
         })}
         {user && (
           <button
-            onClick={logout}
+            onClick={() => { void logout(); }}
             className="ml-2 flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-red-50 dark:hover:bg-red-950/40 hover:text-red-600 dark:hover:text-red-400 transition-colors"
           >
             <LogOut className="h-4 w-4" />
