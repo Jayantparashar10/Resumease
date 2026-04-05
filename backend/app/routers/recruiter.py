@@ -7,6 +7,7 @@ from pydantic import BaseModel
 from app.services.auth import get_current_onboarded_recruiter
 from app.services.supabase_db import (
     SupabaseDBError,
+    create_resume_file_signed_url,
     get_ats_score,
     get_job,
     get_profile_by_user_id,
@@ -50,6 +51,7 @@ class CandidateProfileDetail(CandidateProfileItem):
     extracted_links: dict[str, Any] = {}
     link_analysis: dict[str, Any] = {}
     resume_api_url: str
+    resume_file_api_url: str
 
 
 class CandidateResumeView(BaseModel):
@@ -59,6 +61,13 @@ class CandidateResumeView(BaseModel):
     skills: list[str] = []
     extracted_links: dict[str, Any] = {}
     link_analysis: dict[str, Any] = {}
+
+
+class CandidateResumeFileUrl(BaseModel):
+    resume_id: str
+    filename: str
+    file_url: str
+    expires_in: int = 900
 
 
 @router.get("/candidates/{job_id}", response_model=list[CandidateScoreItem])
@@ -236,6 +245,7 @@ async def get_job_candidate_profile_detail(
         extracted_links=extracted_links,
         link_analysis=link_analysis,
         resume_api_url=f"/api/v1/recruiter/candidates/{job_id}/profiles/{score_id}/resume",
+        resume_file_api_url=f"/api/v1/recruiter/candidates/{job_id}/profiles/{score_id}/resume/file-url",
     )
 
 
@@ -280,4 +290,56 @@ async def get_job_candidate_resume(
         skills=resume.get("skills", []),
         extracted_links=resume.get("extracted_links", {}),
         link_analysis=resume.get("link_analysis", {}),
+    )
+
+
+@router.get("/candidates/{job_id}/profiles/{score_id}/resume/file-url", response_model=CandidateResumeFileUrl)
+async def get_job_candidate_resume_file_url(
+    job_id: str,
+    score_id: str,
+    current_user=Depends(get_current_onboarded_recruiter),
+):
+    """Return a short-lived signed URL for the original uploaded resume file."""
+    try:
+        job = await get_job(job_id)
+    except SupabaseDBError as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+
+    if job.get("recruiter_id") != current_user["_id"]:
+        raise HTTPException(status_code=403, detail="Unauthorized job access")
+
+    try:
+        score_doc = await get_ats_score(score_id)
+    except SupabaseDBError as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
+    if not score_doc or score_doc.get("job_id") != job_id:
+        raise HTTPException(status_code=404, detail="Candidate score not found")
+
+    try:
+        resume = await get_resume(score_doc["resume_id"])
+    except SupabaseDBError as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
+    if not resume:
+        raise HTTPException(status_code=404, detail="Resume not found")
+
+    file_path = resume.get("file_path")
+    if not file_path:
+        raise HTTPException(status_code=404, detail="Original uploaded file is not available for this resume")
+
+    expires_in = 900
+    try:
+        file_url = await create_resume_file_signed_url(file_path, expires_in=expires_in)
+    except SupabaseDBError as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
+    return CandidateResumeFileUrl(
+        resume_id=resume.get("id", score_doc["resume_id"]),
+        filename=resume.get("filename", "resume"),
+        file_url=file_url,
+        expires_in=expires_in,
     )

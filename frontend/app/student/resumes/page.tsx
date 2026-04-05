@@ -30,6 +30,7 @@ function ResumesContent() {
   const [latexLoading, setLatexLoading] = useState(false);
   const [latexGenerating, setLatexGenerating] = useState(false);
   const [latexSaving, setLatexSaving] = useState(false);
+  const [openingOriginalFile, setOpeningOriginalFile] = useState(false);
 
   const loadResumes = useCallback(async () => {
     const res = await resumeApi.list();
@@ -82,8 +83,11 @@ function ResumesContent() {
         await resumeApi.upload(files[0]);
         toast.success("Resume uploaded and parsed!");
         await loadResumes();
-      } catch {
-        toast.error("Upload failed. Check file type and size.");
+      } catch (error: any) {
+        const message = String(
+          error?.response?.data?.detail || "Upload failed. Check file type and size."
+        );
+        toast.error(message);
       } finally {
         setUploading(false);
       }
@@ -190,6 +194,20 @@ function ResumesContent() {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+  };
+
+  const handleOpenOriginalResume = async () => {
+    if (!selected) return;
+    setOpeningOriginalFile(true);
+    try {
+      const res = await resumeApi.getFileUrl(selected.id);
+      window.open(res.data.file_url, "_blank", "noopener,noreferrer");
+    } catch (error: any) {
+      const message = String(error?.response?.data?.detail || "Failed to open original resume file");
+      toast.error(message);
+    } finally {
+      setOpeningOriginalFile(false);
+    }
   };
 
   if (!user) return null;
@@ -322,6 +340,14 @@ function ResumesContent() {
                   )}
                 </div>
               </div>
+
+              <button
+                onClick={handleOpenOriginalResume}
+                disabled={openingOriginalFile}
+                className="mb-4 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-500 disabled:opacity-50"
+              >
+                {openingOriginalFile ? "Opening..." : "Open Original Uploaded Resume"}
+              </button>
 
               {/* GitHub analysis */}
               {selected.extracted_links.github && (

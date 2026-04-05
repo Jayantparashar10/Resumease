@@ -4,7 +4,7 @@ import re
 
 from app.models.ats_score import ATSScorePublic, ScoreRequest
 from app.services.auth import get_current_onboarded_student
-from app.services.github_analyzer import fetch_github_profile
+from app.services.github_analyzer import fetch_github_profile, GITHUB_SCORING_VERSION
 from app.services.llm_service import score_resume_with_llm
 from app.services.link_extractor import extract_github_username
 from app.services.portfolio_analyzer import get_portfolio_analysis as analyze_portfolio
@@ -155,10 +155,19 @@ async def score_resume(
             except SupabaseDBError:
                 cached_gh = None
 
+            should_fetch_fresh = True
             if cached_gh and cached_gh.get("data"):
-                github_data = cached_gh.get("data", {})
-                github_score = github_data.get("github_score")
-            else:
+                cached_data = cached_gh.get("data", {})
+                analyzed_at = _parse_dt(cached_gh.get("analyzed_at"))
+                cache_age = datetime.now(timezone.utc) - analyzed_at
+                is_fresh = cache_age < timedelta(hours=24)
+                is_current_version = cached_data.get("scoring_version") == GITHUB_SCORING_VERSION
+                if is_fresh and is_current_version:
+                    github_data = cached_data
+                    github_score = github_data.get("github_score")
+                    should_fetch_fresh = False
+
+            if should_fetch_fresh:
                 github_data = await fetch_github_profile(username)
                 if "error" not in github_data:
                     github_score = github_data.get("github_score")

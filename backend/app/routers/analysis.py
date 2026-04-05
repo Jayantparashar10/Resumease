@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
 from datetime import datetime, timedelta, timezone
 
 from app.services.auth import get_current_onboarded_student
-from app.services.github_analyzer import fetch_github_profile
+from app.services.github_analyzer import fetch_github_profile, GITHUB_SCORING_VERSION
 from app.services.portfolio_analyzer import get_portfolio_analysis as fetch_portfolio_analysis
 from app.services.link_extractor import extract_github_username
 from app.services.supabase_db import (
@@ -40,7 +40,7 @@ async def analyze_github(
             cache_age = datetime.now(timezone.utc) - datetime.fromisoformat(str(analyzed_at).replace("Z", "+00:00"))
         else:
             cache_age = timedelta.max
-        if cache_age < timedelta(hours=24):
+        if cache_age < timedelta(hours=24) and cached_data.get("scoring_version") == GITHUB_SCORING_VERSION:
             return cached_data
 
     # Fetch and cache in background
@@ -68,24 +68,26 @@ async def get_github_analysis(username: str, current_user=Depends(get_current_on
     except SupabaseDBError as exc:
         raise HTTPException(status_code=500, detail=str(exc))
 
-    if not cached:
-        # Fetch fresh
-        result = await fetch_github_profile(username)
-        if "error" in result:
-            raise HTTPException(status_code=404, detail=result["error"])
-        try:
-            await upsert_github_analysis(
-                {
-                    "username": username,
-                    "data": result,
-                    "analyzed_at": datetime.now(timezone.utc),
-                }
-            )
-        except SupabaseDBError:
-            pass
-        return result
+    if cached:
+        cached_data = cached.get("data", {})
+        if cached_data.get("scoring_version") == GITHUB_SCORING_VERSION:
+            return cached_data
 
-    return cached.get("data", {})
+    # Fetch fresh when cache missing or scoring version changed.
+    result = await fetch_github_profile(username)
+    if "error" in result:
+        raise HTTPException(status_code=404, detail=result["error"])
+    try:
+        await upsert_github_analysis(
+            {
+                "username": username,
+                "data": result,
+                "analyzed_at": datetime.now(timezone.utc),
+            }
+        )
+    except SupabaseDBError:
+        pass
+    return result
 
 
 @router.post("/links/{resume_id}")

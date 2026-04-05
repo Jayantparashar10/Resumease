@@ -1,6 +1,8 @@
 from fastapi import APIRouter, HTTPException, UploadFile, File, Depends
 from datetime import datetime, timezone
 from typing import Optional
+from uuid import uuid4
+import re
 
 from pydantic import BaseModel
 
@@ -14,6 +16,9 @@ from app.services.supabase_db import (
     get_resume_for_user,
     insert_resume,
     list_resumes_for_user,
+    create_resume_file_signed_url,
+    delete_resume_file,
+    upload_resume_file,
     update_resume_for_user,
 )
 
@@ -30,12 +35,32 @@ class ResumeLatexResponse(BaseModel):
 class ResumeLatexSaveRequest(BaseModel):
     latex_source: str
 
+
+class ResumeFileUrlResponse(BaseModel):
+    resume_id: str
+    filename: str
+    file_url: str
+    expires_in: int = 900
+
 MAX_FILE_SIZE = 5 * 1024 * 1024  # 5 MB
 ALLOWED_EXTENSIONS = {".pdf", ".docx", ".doc"}
-ALLOWED_MIME_TYPES = {
-    "application/pdf",
-    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    "application/msword",
+ALLOWED_MIME_TYPES_BY_EXTENSION = {
+    ".pdf": {
+        "application/pdf",
+        "application/x-pdf",
+        "application/acrobat",
+        "application/vnd.pdf",
+        "text/pdf",
+        "application/octet-stream",
+    },
+    ".docx": {
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "application/octet-stream",
+    },
+    ".doc": {
+        "application/msword",
+        "application/octet-stream",
+    },
 }
 
 
@@ -45,12 +70,23 @@ def serialize_resume(r: dict) -> dict:
 
 
 def _looks_like_pdf(file_bytes: bytes) -> bool:
-    return file_bytes.startswith(b"%PDF")
+    # Some valid PDFs contain leading bytes before header; check early chunk.
+    return b"%PDF" in file_bytes[:1024]
 
 
 def _looks_like_docx(file_bytes: bytes) -> bool:
     # DOCX is a zip container.
     return file_bytes.startswith(b"PK\x03\x04")
+
+
+def _looks_like_doc(file_bytes: bytes) -> bool:
+    # Legacy DOC (OLE Compound File) magic bytes.
+    return file_bytes.startswith(b"\xD0\xCF\x11\xE0\xA1\xB1\x1A\xE1")
+
+
+def _safe_filename(filename: str) -> str:
+    sanitized = re.sub(r"[^A-Za-z0-9._-]+", "_", filename).strip("._")
+    return sanitized or "resume"
 
 
 @router.post("/upload", response_model=ResumePublic, status_code=201)
@@ -67,7 +103,9 @@ async def upload_resume(
             detail="Unsupported file type. Only PDF and DOCX are allowed.",
         )
 
-    if file.content_type and file.content_type not in ALLOWED_MIME_TYPES:
+    content_type = (file.content_type or "").split(";")[0].strip().lower()
+    allowed_mime = ALLOWED_MIME_TYPES_BY_EXTENSION.get(ext, set())
+    if content_type and allowed_mime and content_type not in allowed_mime:
         raise HTTPException(
             status_code=400,
             detail="Invalid MIME type for resume upload.",
@@ -79,24 +117,45 @@ async def upload_resume(
 
     if ext == ".pdf" and not _looks_like_pdf(file_bytes):
         raise HTTPException(status_code=400, detail="Uploaded file is not a valid PDF.")
-    if ext in {".docx", ".doc"} and not _looks_like_docx(file_bytes):
-        raise HTTPException(status_code=400, detail="Uploaded file is not a valid DOCX/DOC file.")
+    if ext == ".docx" and not _looks_like_docx(file_bytes):
+        raise HTTPException(status_code=400, detail="Uploaded file is not a valid DOCX file.")
+    if ext == ".doc" and not _looks_like_doc(file_bytes):
+        raise HTTPException(status_code=400, detail="Uploaded file is not a valid DOC file.")
 
     try:
         parsed = parse_resume(file_bytes, file.filename or "resume")
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e))
 
+    resume_id = str(uuid4())
+    safe_filename = _safe_filename(file.filename or "resume")
+    object_path = f"{current_user['_id']}/{resume_id}/{safe_filename}"
+
+    try:
+        await upload_resume_file(
+            object_path=object_path,
+            content=file_bytes,
+            content_type=file.content_type or "application/octet-stream",
+        )
+    except SupabaseDBError as exc:
+        raise HTTPException(status_code=500, detail=f"Failed to store uploaded file: {str(exc)}")
+
     doc = {
+        "id": resume_id,
         "user_id": current_user["_id"],
         "filename": file.filename,
         "file_size": len(file_bytes),
+        "file_path": object_path,
         "uploaded_at": datetime.now(timezone.utc),
         **parsed,
     }
     try:
         created = await insert_resume(doc)
     except SupabaseDBError as exc:
+        try:
+            await delete_resume_file(object_path)
+        except SupabaseDBError:
+            pass
         raise HTTPException(status_code=500, detail=str(exc))
 
     return ResumePublic(
@@ -177,12 +236,56 @@ async def get_resume(resume_id: str, current_user=Depends(get_current_onboarded_
 @router.delete("/{resume_id}", status_code=204)
 async def delete_resume(resume_id: str, current_user=Depends(get_current_onboarded_student)):
     try:
+        doc = await get_resume_for_user(resume_id, current_user["_id"])
+    except SupabaseDBError as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
+    if not doc:
+        raise HTTPException(status_code=404, detail="Resume not found")
+
+    try:
         deleted = await delete_resume_for_user(resume_id, current_user["_id"])
     except SupabaseDBError as exc:
         raise HTTPException(status_code=500, detail=str(exc))
 
     if not deleted:
         raise HTTPException(status_code=404, detail="Resume not found")
+
+    file_path = doc.get("file_path")
+    if file_path:
+        try:
+            await delete_resume_file(file_path)
+        except SupabaseDBError:
+            # Best-effort cleanup: the resume row is already deleted.
+            pass
+
+
+@router.get("/{resume_id}/file-url", response_model=ResumeFileUrlResponse)
+async def get_resume_file_url(resume_id: str, current_user=Depends(get_current_onboarded_student)):
+    try:
+        doc = await get_resume_for_user(resume_id, current_user["_id"])
+    except SupabaseDBError as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
+    if not doc:
+        raise HTTPException(status_code=404, detail="Resume not found")
+
+    file_path = doc.get("file_path")
+    if not file_path:
+        raise HTTPException(status_code=404, detail="Original uploaded file is not available for this resume")
+
+    expires_in = 900
+    try:
+        file_url = await create_resume_file_signed_url(file_path, expires_in=expires_in)
+    except SupabaseDBError as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
+    return ResumeFileUrlResponse(
+        resume_id=doc.get("id", resume_id),
+        filename=doc.get("filename", "resume"),
+        file_url=file_url,
+        expires_in=expires_in,
+    )
 
 
 @router.get("/{resume_id}/latex", response_model=ResumeLatexResponse)

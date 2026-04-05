@@ -142,6 +142,13 @@ export interface ResumeLatex {
   generated_with: string;
 }
 
+export interface ResumeFileUrl {
+  resume_id: string;
+  filename: string;
+  file_url: string;
+  expires_in: number;
+}
+
 export const resumeApi = {
   upload: (file: File) => {
     const form = new FormData();
@@ -157,6 +164,7 @@ export const resumeApi = {
   generateLatex: (id: string) => api.post<ResumeLatex>(`/api/v1/resumes/${id}/latex/generate`),
   saveLatex: (id: string, latex_source: string) =>
     api.put<ResumeLatex>(`/api/v1/resumes/${id}/latex`, { latex_source }),
+  getFileUrl: (id: string) => api.get<ResumeFileUrl>(`/api/v1/resumes/${id}/file-url`),
 };
 
 // ── Jobs ──────────────────────────────────────────────────────────
@@ -259,6 +267,7 @@ export interface RecruiterCandidateProfileDetail extends RecruiterCandidateScore
   extracted_links?: Record<string, unknown>;
   link_analysis?: Record<string, unknown>;
   resume_api_url?: string;
+  resume_file_api_url?: string;
 }
 
 export interface RecruiterCandidateResumeView {
@@ -270,6 +279,13 @@ export interface RecruiterCandidateResumeView {
   link_analysis?: Record<string, unknown>;
 }
 
+export interface RecruiterCandidateResumeFileUrl {
+  resume_id: string;
+  filename: string;
+  file_url: string;
+  expires_in: number;
+}
+
 export const recruiterApi = {
   getCandidates: (jobId: string) =>
     api.get<RecruiterCandidateScore[]>(`/api/v1/recruiter/candidates/${jobId}/profiles`),
@@ -277,4 +293,6 @@ export const recruiterApi = {
     api.get<RecruiterCandidateProfileDetail>(`/api/v1/recruiter/candidates/${jobId}/profiles/${scoreId}`),
   getCandidateResume: (jobId: string, scoreId: string) =>
     api.get<RecruiterCandidateResumeView>(`/api/v1/recruiter/candidates/${jobId}/profiles/${scoreId}/resume`),
+  getCandidateResumeFileUrl: (jobId: string, scoreId: string) =>
+    api.get<RecruiterCandidateResumeFileUrl>(`/api/v1/recruiter/candidates/${jobId}/profiles/${scoreId}/resume/file-url`),
 };

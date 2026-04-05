@@ -16,7 +16,7 @@ export default function RecruiterCandidateProfilePage() {
   const params = useParams<{ id: string; scoreId: string }>();
   const [profile, setProfile] = useState<RecruiterCandidateProfileDetail | null>(null);
   const [resumeData, setResumeData] = useState<RecruiterCandidateResumeView | null>(null);
-  const [openingResumeData, setOpeningResumeData] = useState(false);
+  const [openingOriginalResume, setOpeningOriginalResume] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -34,26 +34,20 @@ export default function RecruiterCandidateProfilePage() {
       .finally(() => setLoading(false));
   }, [params.id, params.scoreId]);
 
-  const openResumeData = async () => {
-    setOpeningResumeData(true);
+  const openOriginalResume = async () => {
+    setOpeningOriginalResume(true);
     try {
-      const payload =
-        resumeData ||
-        (await recruiterApi.getCandidateResume(params.id, params.scoreId)).data;
-
-      if (!resumeData) {
-        setResumeData(payload);
+      const res = await recruiterApi.getCandidateResumeFileUrl(params.id, params.scoreId);
+      window.open(res.data.file_url, "_blank", "noopener,noreferrer");
+    } catch (error: any) {
+      const detail = String(error?.response?.data?.detail || "");
+      if (detail.toLowerCase().includes("not available")) {
+        toast.error("Original file is unavailable for this older resume upload.");
+      } else {
+        toast.error("Unable to open original resume right now");
       }
-
-      const pretty = JSON.stringify(payload, null, 2);
-      const blob = new Blob([pretty], { type: "application/json;charset=utf-8" });
-      const blobUrl = URL.createObjectURL(blob);
-      window.open(blobUrl, "_blank", "noopener,noreferrer");
-      setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000);
-    } catch {
-      toast.error("Unable to open resume data right now");
     } finally {
-      setOpeningResumeData(false);
+      setOpeningOriginalResume(false);
     }
   };
 
@@ -184,11 +178,11 @@ export default function RecruiterCandidateProfilePage() {
                   </div>
 
                   <button
-                    onClick={openResumeData}
-                    disabled={openingResumeData}
+                    onClick={openOriginalResume}
+                    disabled={openingOriginalResume}
                     className="inline-flex rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
                   >
-                    {openingResumeData ? "Opening..." : "Open Resume Data Link"}
+                    {openingOriginalResume ? "Opening..." : "Open Original Resume"}
                   </button>
 
                   {profile.github_url ? (
