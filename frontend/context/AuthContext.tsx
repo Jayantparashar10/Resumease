@@ -15,7 +15,7 @@ import {
   ProfileUpdatePayload,
   User,
 } from "@/services/api";
-import { setAccessToken } from "@/lib/tokenStore";
+import { setAccessToken, getAccessToken } from "@/lib/tokenStore";
 
 // ── httpOnly Cookie Bridge ────────────────────────────────────────────────────
 //
@@ -91,7 +91,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const refreshSession = useCallback(async () => {
     // In-memory token is empty on hard reload — user must re-authenticate.
     // The httpOnly cookie is not used as a backend auth channel yet.
-    if (!_isTokenSet()) {
+    if (getAccessToken() === null) {
       setUser(null);
       return;
     }
@@ -181,12 +181,4 @@ export function useAuth() {
   const ctx = useContext(AuthContext);
   if (!ctx) throw new Error("useAuth must be used inside AuthProvider");
   return ctx;
-}
-
-// ── Internal helpers ──────────────────────────────────────────────────────────
-
-import { getAccessToken } from "@/lib/tokenStore";
-
-function _isTokenSet(): boolean {
-  return getAccessToken() !== null;
 }

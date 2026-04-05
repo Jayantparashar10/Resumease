@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
     secure: isProduction,        // Only sent over HTTPS in production
     sameSite: "strict",          // Prevents CSRF
     path: "/",
-    // Mirror the backend JWT expiry (default 24 h). Adjust if you change JWT_EXPIRE_HOURS.
+    // Session length: 24 hours, matching the Supabase default session expiry.
     maxAge: 60 * 60 * 24,
   });
 
