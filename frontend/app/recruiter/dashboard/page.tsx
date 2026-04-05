@@ -93,7 +93,7 @@ export default function RecruiterDashboardPage() {
             </div>
             <button
               onClick={() => setShowForm((v) => !v)}
-              className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm shadow-violet-500/25 hover:opacity-90 transition-opacity"
+              className="flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm shadow-blue-500/25 hover:bg-blue-700 transition-colors"
             >
               <Plus className="h-4 w-4" /> Post a Job
             </button>
@@ -116,7 +116,7 @@ export default function RecruiterDashboardPage() {
                     required
                     value={form.title}
                     onChange={(e) => setForm({ ...form, title: e.target.value })}
-                    className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 px-3 py-2 text-sm text-slate-900 dark:text-slate-100 outline-none placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:border-violet-500 dark:focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 transition-colors"
+                    className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 px-3 py-2 text-sm text-slate-900 dark:text-slate-100 outline-none placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:border-blue-500 dark:focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-colors"
                     placeholder="e.g. Frontend Engineer"
                   />
                 </div>
@@ -128,7 +128,7 @@ export default function RecruiterDashboardPage() {
                     required
                     value={form.company}
                     onChange={(e) => setForm({ ...form, company: e.target.value })}
-                    className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 px-3 py-2 text-sm text-slate-900 dark:text-slate-100 outline-none placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:border-violet-500 dark:focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 transition-colors"
+                    className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 px-3 py-2 text-sm text-slate-900 dark:text-slate-100 outline-none placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:border-blue-500 dark:focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-colors"
                     placeholder="e.g. Acme Inc."
                   />
                 </div>
@@ -139,7 +139,7 @@ export default function RecruiterDashboardPage() {
                   <input
                     value={form.location}
                     onChange={(e) => setForm({ ...form, location: e.target.value })}
-                    className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 px-3 py-2 text-sm text-slate-900 dark:text-slate-100 outline-none placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:border-violet-500 dark:focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 transition-colors"
+                    className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 px-3 py-2 text-sm text-slate-900 dark:text-slate-100 outline-none placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:border-blue-500 dark:focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-colors"
                     placeholder="e.g. Remote"
                   />
                 </div>
@@ -154,7 +154,7 @@ export default function RecruiterDashboardPage() {
                     onChange={(e) =>
                       setForm({ ...form, experience_years: e.target.value })
                     }
-                    className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 px-3 py-2 text-sm text-slate-900 dark:text-slate-100 outline-none placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:border-violet-500 dark:focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 transition-colors"
+                    className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 px-3 py-2 text-sm text-slate-900 dark:text-slate-100 outline-none placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:border-blue-500 dark:focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-colors"
                     placeholder="e.g. 2"
                   />
                 </div>
@@ -168,7 +168,7 @@ export default function RecruiterDashboardPage() {
                     onChange={(e) =>
                       setForm({ ...form, required_skills: e.target.value })
                     }
-                    className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 px-3 py-2 text-sm text-slate-900 dark:text-slate-100 outline-none placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:border-violet-500 dark:focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 transition-colors"
+                    className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 px-3 py-2 text-sm text-slate-900 dark:text-slate-100 outline-none placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:border-blue-500 dark:focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-colors"
                     placeholder="e.g. React, TypeScript, Node.js"
                   />
                 </div>
@@ -183,7 +183,7 @@ export default function RecruiterDashboardPage() {
                     onChange={(e) =>
                       setForm({ ...form, description: e.target.value })
                     }
-                    className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 px-3 py-2 text-sm text-slate-900 dark:text-slate-100 outline-none placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:border-violet-500 dark:focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 transition-colors resize-none"
+                    className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 px-3 py-2 text-sm text-slate-900 dark:text-slate-100 outline-none placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:border-blue-500 dark:focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-colors resize-none"
                     placeholder="Describe the role, responsibilities, and requirements..."
                   />
                 </div>
@@ -192,7 +192,7 @@ export default function RecruiterDashboardPage() {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="rounded-lg bg-gradient-to-r from-violet-600 to-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm shadow-violet-500/20 hover:opacity-90 disabled:opacity-60 transition-opacity"
+                  className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm shadow-blue-500/20 hover:bg-blue-700 disabled:opacity-60 transition-colors"
                 >
                   {submitting ? "Posting..." : "Post Job"}
                 </button>
@@ -209,8 +209,8 @@ export default function RecruiterDashboardPage() {
 
           <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-3">
             <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-sm">
-              <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-xl bg-violet-50 dark:bg-violet-950/50">
-                <Briefcase className="h-4 w-4 text-violet-600 dark:text-violet-400" />
+              <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-xl bg-blue-50 dark:bg-blue-950/50">
+                <Briefcase className="h-4 w-4 text-blue-600 dark:text-blue-400" />
               </div>
               <p className="text-2xl font-bold text-slate-900 dark:text-slate-50">
                 {jobs.length}
@@ -232,7 +232,7 @@ export default function RecruiterDashboardPage() {
               </p>
               <button
                 onClick={() => setShowForm(true)}
-                className="mt-3 text-sm text-violet-600 dark:text-violet-400 hover:underline"
+                className="mt-3 text-sm text-blue-600 dark:text-blue-400 hover:underline"
               >
                 Post your first job -&gt;
               </button>

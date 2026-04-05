@@ -8,7 +8,7 @@ import RoleGuard from "@/components/auth/RoleGuard";
 import Navbar from "@/components/Navbar";
 import { resumeApi, Resume, jobApi, Job, atsApi, ATSScore, analysisApi } from "@/services/api";
 import toast from "react-hot-toast";
-import { Upload, Trash2, Github, ExternalLink, FileText } from "lucide-react";
+import { Upload, Trash2, Github, ExternalLink, FileText, Download } from "lucide-react";
 import { useDropzone } from "react-dropzone";
 
 function ResumesContent() {
@@ -24,6 +24,12 @@ function ResumesContent() {
   const [scoring, setScoring] = useState(false);
   const [atsResult, setAtsResult] = useState<ATSScore | null>(null);
   const [githubData, setGithubData] = useState<Record<string, unknown> | null>(null);
+  const [latexSource, setLatexSource] = useState("");
+  const [latexUpdatedAt, setLatexUpdatedAt] = useState<string | null>(null);
+  const [latexGeneratedWith, setLatexGeneratedWith] = useState("stored");
+  const [latexLoading, setLatexLoading] = useState(false);
+  const [latexGenerating, setLatexGenerating] = useState(false);
+  const [latexSaving, setLatexSaving] = useState(false);
 
   const loadResumes = useCallback(async () => {
     const res = await resumeApi.list();
@@ -41,6 +47,32 @@ function ResumesContent() {
       resumeApi.get(selectedId).then((r) => setSelected(r.data));
     }
   }, [selectedId]);
+
+  const loadResumeLatex = useCallback(async (resumeId: string) => {
+    setLatexLoading(true);
+    try {
+      const res = await resumeApi.getLatex(resumeId);
+      setLatexSource(res.data.latex_source ?? "");
+      setLatexUpdatedAt(res.data.latex_updated_at ?? null);
+      setLatexGeneratedWith(res.data.generated_with ?? "stored");
+    } catch {
+      setLatexSource("");
+      setLatexUpdatedAt(null);
+      setLatexGeneratedWith("stored");
+    } finally {
+      setLatexLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!selected?.id) {
+      setLatexSource("");
+      setLatexUpdatedAt(null);
+      setLatexGeneratedWith("stored");
+      return;
+    }
+    loadResumeLatex(selected.id);
+  }, [selected?.id, loadResumeLatex]);
 
   const onDrop = useCallback(
     async (files: File[]) => {
@@ -101,6 +133,63 @@ function ResumesContent() {
     } catch {
       toast.error("GitHub analysis failed");
     }
+  };
+
+  const handleGenerateLatex = async () => {
+    if (!selected) return;
+    setLatexGenerating(true);
+    try {
+      const res = await resumeApi.generateLatex(selected.id);
+      setLatexSource(res.data.latex_source ?? "");
+      setLatexUpdatedAt(res.data.latex_updated_at ?? null);
+      setLatexGeneratedWith(res.data.generated_with ?? "stored");
+      toast.success(
+        res.data.generated_with === "llm"
+          ? "LaTeX generated with AI"
+          : "Generated fallback LaTeX template"
+      );
+    } catch {
+      toast.error("Failed to generate LaTeX");
+    } finally {
+      setLatexGenerating(false);
+    }
+  };
+
+  const handleSaveLatex = async () => {
+    if (!selected) return;
+    if (!latexSource.trim()) {
+      toast.error("LaTeX content is empty");
+      return;
+    }
+    setLatexSaving(true);
+    try {
+      const res = await resumeApi.saveLatex(selected.id, latexSource);
+      setLatexUpdatedAt(res.data.latex_updated_at ?? null);
+      setLatexGeneratedWith("stored");
+      toast.success("LaTeX saved");
+    } catch (error: any) {
+      const message = error?.response?.data?.detail || "Failed to save LaTeX";
+      toast.error(String(message));
+    } finally {
+      setLatexSaving(false);
+    }
+  };
+
+  const handleDownloadLatex = () => {
+    if (!selected || !latexSource.trim()) {
+      toast.error("No LaTeX source to download");
+      return;
+    }
+    const baseName = selected.filename.replace(/\.[^.]+$/, "") || "resume";
+    const blob = new Blob([latexSource], { type: "text/x-tex;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${baseName}.tex`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
 
   if (!user) return null;
@@ -249,10 +338,59 @@ function ResumesContent() {
                   <p className="font-semibold text-slate-800 dark:text-slate-200 mb-1.5">
                     GitHub Score: <span className="text-violet-600 dark:text-violet-400">{String(githubData.github_score ?? "—")}/100</span>
                   </p>
-                  <p>📦 {String(githubData.public_repos ?? 0)} public repos · ⭐ {String(githubData.total_stars ?? 0)} stars</p>
+                  <p>Repos: {String(githubData.public_repos ?? 0)} · Stars: {String(githubData.total_stars ?? 0)}</p>
                   <p className="mt-0.5">Languages: {Object.keys((githubData.languages as Record<string, number>) ?? {}).join(", ") || "N/A"}</p>
                 </div>
               )}
+
+              <div className="mb-5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-800/40 p-3">
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                    LaTeX resume editor
+                  </p>
+                  {latexUpdatedAt && (
+                    <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                      Updated {new Date(latexUpdatedAt).toLocaleString()}
+                    </span>
+                  )}
+                </div>
+
+                <div className="mb-2 flex flex-wrap gap-2">
+                  <button
+                    onClick={handleGenerateLatex}
+                    disabled={latexGenerating || latexLoading}
+                    className="rounded-lg bg-violet-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-violet-500 disabled:opacity-50"
+                  >
+                    {latexGenerating ? "Generating..." : "Generate with AI"}
+                  </button>
+                  <button
+                    onClick={handleSaveLatex}
+                    disabled={latexSaving || latexLoading || !latexSource.trim()}
+                    className="rounded-lg border border-slate-300 dark:border-slate-600 px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-50"
+                  >
+                    {latexSaving ? "Saving..." : "Save"}
+                  </button>
+                  <button
+                    onClick={handleDownloadLatex}
+                    disabled={!latexSource.trim()}
+                    className="inline-flex items-center gap-1 rounded-lg border border-slate-300 dark:border-slate-600 px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-50"
+                  >
+                    <Download className="h-3.5 w-3.5" />
+                    Download .tex
+                  </button>
+                </div>
+
+                <p className="mb-2 text-[11px] text-slate-500 dark:text-slate-400">
+                  Source mode: {latexGeneratedWith === "llm" ? "AI generated" : "stored/fallback"}
+                </p>
+
+                <textarea
+                  value={latexSource}
+                  onChange={(e) => setLatexSource(e.target.value)}
+                  placeholder={latexLoading ? "Loading LaTeX..." : "Generate LaTeX with AI, then edit and save here."}
+                  className="h-52 w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 p-3 font-mono text-xs text-slate-800 dark:text-slate-100 outline-none focus:border-violet-500 dark:focus:border-violet-500"
+                />
+              </div>
 
               {/* ATS Score */}
               <div className="border-t border-slate-100 dark:border-slate-800 pt-4">
@@ -288,20 +426,24 @@ function ResumesContent() {
                       </span>
                     </div>
                     {/* Breakdown bars */}
-                    {(Object.entries(atsResult.breakdown) as [string, number][]).map(([k, v]) => (
-                      <div key={k} className="mb-2">
-                        <div className="flex justify-between text-xs text-slate-500 dark:text-slate-400 mb-1">
-                          <span className="capitalize">{k.replace(/_/g, " ")}</span>
-                          <span className="font-medium">{v}</span>
+                    {(Object.entries(atsResult.breakdown) as [string, number][]).map(([k, v]) => {
+                      const isLinkVerification = k === "link_verification";
+                      const metricValue = isLinkVerification ? (v > 0 ? 100 : 0) : v;
+                      return (
+                        <div key={k} className="mb-2">
+                          <div className="flex justify-between text-xs text-slate-500 dark:text-slate-400 mb-1">
+                            <span className="capitalize">{k.replace(/_/g, " ")}</span>
+                            <span className="font-medium">{isLinkVerification ? (v > 0 ? "Yes" : "No") : v}</span>
+                          </div>
+                          <div className="h-1.5 rounded-full bg-slate-200 dark:bg-slate-700">
+                            <div
+                              className={`h-1.5 rounded-full transition-all ${barColor(metricValue)}`}
+                              style={{ width: `${metricValue}%` }}
+                            />
+                          </div>
                         </div>
-                        <div className="h-1.5 rounded-full bg-slate-200 dark:bg-slate-700">
-                          <div
-                            className={`h-1.5 rounded-full transition-all ${barColor(v)}`}
-                            style={{ width: `${v}%` }}
-                          />
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                     {/* Suggestions */}
                     {atsResult.suggestions.length > 0 && (
                       <div className="mt-3 border-t border-slate-200 dark:border-slate-700 pt-3">

@@ -1,8 +1,12 @@
 from fastapi import APIRouter, HTTPException, UploadFile, File, Depends
 from datetime import datetime, timezone
+from typing import Optional
+
+from pydantic import BaseModel
 
 from app.models.resume import ResumePublic
 from app.services.auth import get_current_onboarded_student
+from app.services.resume_latex_service import generate_resume_latex_with_llm
 from app.services.resume_parser import parse_resume
 from app.services.supabase_db import (
     SupabaseDBError,
@@ -10,9 +14,21 @@ from app.services.supabase_db import (
     get_resume_for_user,
     insert_resume,
     list_resumes_for_user,
+    update_resume_for_user,
 )
 
 router = APIRouter()
+
+
+class ResumeLatexResponse(BaseModel):
+    resume_id: str
+    latex_source: Optional[str] = None
+    latex_updated_at: Optional[datetime] = None
+    generated_with: str = "stored"
+
+
+class ResumeLatexSaveRequest(BaseModel):
+    latex_source: str
 
 MAX_FILE_SIZE = 5 * 1024 * 1024  # 5 MB
 ALLOWED_EXTENSIONS = {".pdf", ".docx", ".doc"}
@@ -93,6 +109,9 @@ async def upload_resume(
         status=created.get("status", "parsed"),
         parser_version=created.get("parser_version", "v1"),
         screening_summary=created.get("screening_summary", {}),
+        link_analysis=created.get("link_analysis", {}),
+        latex_source=created.get("latex_source"),
+        latex_updated_at=created.get("latex_updated_at"),
         uploaded_at=created["uploaded_at"],
         parsed_text=created.get("parsed_text"),
     )
@@ -118,6 +137,9 @@ async def list_resumes(current_user=Depends(get_current_onboarded_student)):
                 status=doc.get("status", "parsed"),
                 parser_version=doc.get("parser_version", "v1"),
                 screening_summary=doc.get("screening_summary", {}),
+                link_analysis=doc.get("link_analysis", {}),
+                latex_source=doc.get("latex_source"),
+                latex_updated_at=doc.get("latex_updated_at"),
                 uploaded_at=doc["uploaded_at"],
             )
         )
@@ -144,6 +166,9 @@ async def get_resume(resume_id: str, current_user=Depends(get_current_onboarded_
         status=doc.get("status", "parsed"),
         parser_version=doc.get("parser_version", "v1"),
         screening_summary=doc.get("screening_summary", {}),
+        link_analysis=doc.get("link_analysis", {}),
+        latex_source=doc.get("latex_source"),
+        latex_updated_at=doc.get("latex_updated_at"),
         uploaded_at=doc["uploaded_at"],
         parsed_text=doc.get("parsed_text"),
     )
@@ -158,3 +183,103 @@ async def delete_resume(resume_id: str, current_user=Depends(get_current_onboard
 
     if not deleted:
         raise HTTPException(status_code=404, detail="Resume not found")
+
+
+@router.get("/{resume_id}/latex", response_model=ResumeLatexResponse)
+async def get_resume_latex(resume_id: str, current_user=Depends(get_current_onboarded_student)):
+    try:
+        doc = await get_resume_for_user(resume_id, current_user["_id"])
+    except SupabaseDBError as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
+    if not doc:
+        raise HTTPException(status_code=404, detail="Resume not found")
+
+    return ResumeLatexResponse(
+        resume_id=doc["id"],
+        latex_source=doc.get("latex_source"),
+        latex_updated_at=doc.get("latex_updated_at"),
+        generated_with="stored",
+    )
+
+
+@router.post("/{resume_id}/latex/generate", response_model=ResumeLatexResponse)
+async def generate_resume_latex(resume_id: str, current_user=Depends(get_current_onboarded_student)):
+    try:
+        doc = await get_resume_for_user(resume_id, current_user["_id"])
+    except SupabaseDBError as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
+    if not doc:
+        raise HTTPException(status_code=404, detail="Resume not found")
+
+    latex_source, mode = await generate_resume_latex_with_llm(
+        resume_text=doc.get("parsed_text", ""),
+        skills=doc.get("skills", []),
+        full_name=current_user.get("full_name", "Candidate Name"),
+        email=current_user.get("email", "candidate@example.com"),
+    )
+
+    now = datetime.now(timezone.utc)
+    try:
+        updated = await update_resume_for_user(
+            resume_id,
+            current_user["_id"],
+            {
+                "latex_source": latex_source,
+                "latex_updated_at": now,
+            },
+        )
+    except SupabaseDBError as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
+    if not updated:
+        raise HTTPException(status_code=500, detail="Failed to persist generated LaTeX")
+
+    return ResumeLatexResponse(
+        resume_id=updated["id"],
+        latex_source=updated.get("latex_source"),
+        latex_updated_at=updated.get("latex_updated_at"),
+        generated_with=mode,
+    )
+
+
+@router.put("/{resume_id}/latex", response_model=ResumeLatexResponse)
+async def save_resume_latex(
+    resume_id: str,
+    payload: ResumeLatexSaveRequest,
+    current_user=Depends(get_current_onboarded_student),
+):
+    try:
+        doc = await get_resume_for_user(resume_id, current_user["_id"])
+    except SupabaseDBError as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
+    if not doc:
+        raise HTTPException(status_code=404, detail="Resume not found")
+
+    if "\\documentclass" not in payload.latex_source:
+        raise HTTPException(status_code=400, detail="LaTeX source must include a full document with \\documentclass")
+
+    now = datetime.now(timezone.utc)
+    try:
+        updated = await update_resume_for_user(
+            resume_id,
+            current_user["_id"],
+            {
+                "latex_source": payload.latex_source,
+                "latex_updated_at": now,
+            },
+        )
+    except SupabaseDBError as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
+    if not updated:
+        raise HTTPException(status_code=500, detail="Failed to save LaTeX")
+
+    return ResumeLatexResponse(
+        resume_id=updated["id"],
+        latex_source=updated.get("latex_source"),
+        latex_updated_at=updated.get("latex_updated_at"),
+        generated_with="stored",
+    )

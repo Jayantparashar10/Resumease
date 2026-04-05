@@ -19,6 +19,8 @@ from app.services.auth import (
 from app.services.supabase_auth import (
     SupabaseAuthError,
     exchange_google_token_for_session,
+    sign_in_with_email_password,
+    sign_up_with_email_password,
     update_profile as update_supabase_profile,
     upsert_profile_from_user,
 )
@@ -76,12 +78,77 @@ async def google_login(payload: GoogleLoginRequest):
 
 @router.post("/register", response_model=TokenResponse, status_code=201)
 async def register(user_data: UserCreate):
-    raise HTTPException(status_code=400, detail="Use Google sign-in with Supabase Auth")
+    try:
+        session_data = await sign_up_with_email_password(
+            email=user_data.email,
+            password=user_data.password,
+            full_name=user_data.full_name,
+        )
+
+        access_token = session_data["access_token"]
+        sb_user = session_data["user"]
+
+        profile = await upsert_profile_from_user(sb_user)
+        if profile.get("role") != user_data.role:
+            profile = await update_supabase_profile(
+                sb_user["id"],
+                {
+                    "role": user_data.role,
+                    "full_name": user_data.full_name,
+                },
+            )
+
+        user_doc = {
+            "_id": sb_user["id"],
+            "email": profile.get("email") or sb_user.get("email"),
+            "full_name": profile.get("full_name") or user_data.full_name,
+            "role": profile.get("role", user_data.role),
+            "avatar_url": profile.get("avatar_url"),
+            "onboarding_completed": profile.get("onboarding_completed", False),
+            "created_at": profile.get("created_at") or datetime.now(timezone.utc),
+            "is_active": profile.get("is_active", True),
+        }
+
+        user_public = to_public_user(user_doc)
+        return TokenResponse(
+            access_token=access_token,
+            user=user_public,
+            onboarding_completed=user_public.onboarding_completed,
+        )
+    except SupabaseAuthError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=str(exc))
 
 
 @router.post("/login", response_model=TokenResponse)
 async def login(credentials: UserLogin):
-    raise HTTPException(status_code=400, detail="Use Google sign-in with Supabase Auth")
+    try:
+        session_data = await sign_in_with_email_password(
+            email=credentials.email,
+            password=credentials.password,
+        )
+        access_token = session_data["access_token"]
+        sb_user = session_data["user"]
+
+        profile = await upsert_profile_from_user(sb_user)
+        user_doc = {
+            "_id": sb_user["id"],
+            "email": profile.get("email") or sb_user.get("email"),
+            "full_name": profile.get("full_name") or (sb_user.get("email", "user").split("@")[0]),
+            "role": profile.get("role", "student"),
+            "avatar_url": profile.get("avatar_url"),
+            "onboarding_completed": profile.get("onboarding_completed", False),
+            "created_at": profile.get("created_at") or datetime.now(timezone.utc),
+            "is_active": profile.get("is_active", True),
+        }
+
+        user_public = to_public_user(user_doc)
+        return TokenResponse(
+            access_token=access_token,
+            user=user_public,
+            onboarding_completed=user_public.onboarding_completed,
+        )
+    except SupabaseAuthError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=str(exc))
 
 
 @router.get("/me", response_model=UserPublic)
@@ -118,7 +185,7 @@ async def complete_onboarding(
             },
         )
     except SupabaseAuthError as exc:
-        raise HTTPException(status_code=500, detail=str(exc))
+        raise HTTPException(status_code=exc.status_code, detail=str(exc))
 
     return to_public_user(
         {
@@ -165,7 +232,7 @@ async def update_profile(
     try:
         updated = await update_supabase_profile(current_user["_id"], updates)
     except SupabaseAuthError as exc:
-        raise HTTPException(status_code=500, detail=str(exc))
+        raise HTTPException(status_code=exc.status_code, detail=str(exc))
 
     return to_public_user(
         {
