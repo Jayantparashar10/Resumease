@@ -1,0 +1,26 @@
+# Providers
+AUTH_PROVIDER=supabase
+DATABASE_PROVIDER=supabase
+
+# JWT
+JWT_SECRET=change-me-to-something-secure-in-production
+JWT_ALGORITHM=HS256
+JWT_EXPIRE_HOURS=24
+
+# Google OAuth
+GOOGLE_CLIENT_ID=1078639547820-5ornvgvpn2mmf6ek14ph8h7mguup272g.apps.googleusercontent.com
+
+# Supabase
+SUPABASE_URL=https://bnsjsjdnytfmnbtjilei.supabase.co
+SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJuc2pzamRueXRmbW5idGppbGVpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2ODI3ODksImV4cCI6MjA4OTI1ODc4OX0.Q2PTWoHc2F1dPT7AHbkJP7yOAAO-eN2En9oKfjNqWlc
+SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJuc2pzamRueXRmbW5idGppbGVpIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MzY4Mjc4OSwiZXhwIjoyMDg5MjU4Nzg5fQ.tScjrQbKX09WjwRlAnhJb3YfFtJCft80JRuLtjm9wks
+
+# GitHub (optional)
+GITHUB_TOKEN=
+
+# Cerebras LLM (optional — falls back to rule-based scoring if not set)
+CEREBRAS_API_KEY=csk-xrcyw8yxpk55d598f23j4rm9rymd9d6yev5ver2p9pfyvxnc
+CEREBRAS_MODEL=llama-3.3-70b
+
+# CORS
+CORS_ORIGINS=["http://localhost:3000","http://localhost:3001"]
