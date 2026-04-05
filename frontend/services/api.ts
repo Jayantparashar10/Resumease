@@ -1,5 +1,5 @@
 import axios from "axios";
-import { getAccessToken } from "@/context/AuthContext";
+import { getAccessToken } from "@/lib/tokenStore";
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
@@ -80,10 +80,7 @@ export const authApi = {
   updateProfile: (payload: ProfileUpdatePayload) =>
     api.put<User>("/api/v1/auth/profile", payload),
 
-  logout: () =>
-    api.post("/api/v1/auth/logout").catch(() => {
-      // Best-effort: don't block UI logout if the server call fails
-    }),
+  logout: () => api.post("/api/v1/auth/logout"),
 };
 
 // ── Resumes ───────────────────────────────────────────────────────

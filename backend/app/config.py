@@ -7,13 +7,6 @@ logger = logging.getLogger(__name__)
 
 BACKEND_ROOT = Path(__file__).resolve().parents[1]
 
-# Placeholder values that must never reach production
-_INSECURE_JWT_DEFAULTS = {
-    "",
-    "changeme-super-secret-key",
-    "change-me-to-something-secure-in-production",
-}
-
 
 class Settings(BaseSettings):
     # App
@@ -27,11 +20,6 @@ class Settings(BaseSettings):
     # Providers
     AUTH_PROVIDER: str = "supabase"
     DATABASE_PROVIDER: str = "supabase"
-
-    # JWT — MUST be overridden via .env in every environment
-    JWT_SECRET: str = ""
-    JWT_ALGORITHM: str = "HS256"
-    JWT_EXPIRE_HOURS: int = 24
 
     # Google OAuth
     GOOGLE_CLIENT_ID: str = ""
@@ -67,18 +55,7 @@ def get_settings() -> Settings:
 
 
 def _validate_settings(s: Settings) -> None:
-    """Crash fast if critical secrets are missing or insecure defaults are used."""
-    if s.JWT_SECRET in _INSECURE_JWT_DEFAULTS:
-        raise ValueError(
-            "JWT_SECRET is not configured. "
-            "Set a cryptographically random 256-bit secret in your .env file. "
-            "Generate one with: python -c \"import secrets; print(secrets.token_hex(32))\""
-        )
-    if len(s.JWT_SECRET) < 32:
-        raise ValueError(
-            f"JWT_SECRET is too short ({len(s.JWT_SECRET)} chars). "
-            "Use at least 32 characters (256 bits)."
-        )
+    """Warn about unsafe runtime configuration."""
     if s.ENVIRONMENT != "development" and s.DEBUG:
         logger.warning(
             "DEBUG=True in a non-development environment. "

@@ -15,32 +15,27 @@ import {
   ProfileUpdatePayload,
   User,
 } from "@/services/api";
+import { setAccessToken } from "@/lib/tokenStore";
 
-// ── Token storage ─────────────────────────────────────────────────────────────
+// ── httpOnly Cookie Bridge ────────────────────────────────────────────────────
 //
 // Security model:
-//   • The raw access token is stored ONLY in a React ref (module memory).
-//     It is never written to localStorage or sessionStorage — both are
-//     accessible to any JavaScript running on the page (XSS vectors).
+//   • The raw access token is stored ONLY in a module-level variable via
+//     tokenStore.ts. It is never written to localStorage or sessionStorage —
+//     both are readable by any JavaScript on the page (XSS vectors).
 //   • On login the token is also sent to the Next.js Route Handler at
 //     /api/auth/set-token, which writes it as an httpOnly Secure
-//     SameSite=Strict cookie. This cookie is sent automatically by the
-//     browser on every request to the same origin but is not readable by JS.
-//   • The axios interceptor in services/api.ts reads from the in-memory ref
-//     via `getAccessToken()`, so API calls work within the session.
-//   • On hard reload the in-memory ref is empty. The app calls /auth/me
-//     which the backend validates via the Bearer cookie (or re-login is
-//     required). The refreshSession flow handles this gracefully.
+//     SameSite=Strict cookie. This prevents interception by malicious scripts.
 //
-// This eliminates the XSS token-theft attack vector present in the previous
-// localStorage-based approach.
-
-let _inMemoryToken: string | null = null;
-
-/** Read the in-memory token. Used by the axios interceptor in api.ts. */
-export function getAccessToken(): string | null {
-  return _inMemoryToken;
-}
+// NOTE — hard reload behaviour:
+//   On a hard page reload the in-memory token (tokenStore) is reset to null.
+//   The app will attempt refreshSession(), which will find no token and
+//   redirect to login. The httpOnly cookie is NOT currently used as a fallback
+//   auth channel for the backend (which only reads the Authorization header).
+//   The cookie exists solely to protect the token at rest in the browser;
+//   a future improvement would be a Next.js middleware that reads the cookie
+//   and injects it as the Authorization header for server-rendered routes.
+//   For now, users will need to re-authenticate after a hard reload.
 
 async function persistTokenCookie(token: string): Promise<void> {
   try {
@@ -82,7 +77,6 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  // Track whether we have attempted a session restore on mount
   const sessionRestored = useRef(false);
 
   const getPostLoginRoute = (nextUser?: User | null) => {
@@ -95,9 +89,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const refreshSession = useCallback(async () => {
-    // If we have no in-memory token, there is nothing to refresh.
-    // The user will need to log in again after a hard page reload.
-    if (!_inMemoryToken) {
+    // In-memory token is empty on hard reload — user must re-authenticate.
+    // The httpOnly cookie is not used as a backend auth channel yet.
+    if (!_isTokenSet()) {
       setUser(null);
       return;
     }
@@ -107,18 +101,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(res.data);
     } catch {
       // Token is invalid or expired — clear everything
-      _inMemoryToken = null;
+      setAccessToken(null);
       await clearTokenCookie();
       setUser(null);
     }
   }, []);
 
-  // On mount: attempt to restore session from the in-memory token.
-  // (After a hard reload the token is gone and the user must re-authenticate.)
   useEffect(() => {
     if (sessionRestored.current) return;
     sessionRestored.current = true;
-
     refreshSession().finally(() => setLoading(false));
   }, [refreshSession]);
 
@@ -126,8 +117,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const res = await authApi.googleLogin(idToken);
     const { access_token, user: loggedInUser } = res.data;
 
-    // Store in memory (primary) and httpOnly cookie (persistent across reloads)
-    _inMemoryToken = access_token;
+    setAccessToken(access_token);
     await persistTokenCookie(access_token);
 
     setUser(loggedInUser);
@@ -149,20 +139,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   /**
    * Logout:
    *  1. Call the backend /logout endpoint to revoke the Supabase token server-side.
-   *  2. Clear the httpOnly cookie via the Next.js route handler.
-   *  3. Clear the in-memory token and React state.
-   *  4. Redirect to home.
-   *
-   * Even if the backend call fails we still clear local state so the user
-   * is not stuck in a logged-in UI with an invalid token.
+   *     This is best-effort — a failure is logged but does not block local cleanup.
+   *  2. Clear the in-memory token and httpOnly cookie.
+   *  3. Clear React state and redirect to home.
    */
   const logout = async (): Promise<void> => {
     try {
       await authApi.logout();
-    } catch {
-      console.warn("[auth] Server-side logout failed; proceeding with local cleanup");
+    } catch (err) {
+      // Best-effort: log the failure but always clear local state so the user
+      // is not stuck in a broken logged-in UI.
+      console.warn("[auth] Server-side logout failed:", err);
     } finally {
-      _inMemoryToken = null;
+      setAccessToken(null);
       await clearTokenCookie();
       setUser(null);
       window.location.href = "/";
@@ -192,4 +181,12 @@ export function useAuth() {
   const ctx = useContext(AuthContext);
   if (!ctx) throw new Error("useAuth must be used inside AuthProvider");
   return ctx;
+}
+
+// ── Internal helpers ──────────────────────────────────────────────────────────
+
+import { getAccessToken } from "@/lib/tokenStore";
+
+function _isTokenSet(): boolean {
+  return getAccessToken() !== null;
 }

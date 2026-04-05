@@ -1,7 +1,6 @@
 from fastapi import APIRouter, HTTPException, Depends, Request
 from datetime import datetime, timezone
 
-from app.config import settings
 from app.middleware.rate_limit import limiter
 from app.models.user import (
     GoogleLoginRequest,
