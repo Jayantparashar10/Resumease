@@ -1,8 +1,56 @@
-from datetime import datetime, timezone
+import asyncio
+from datetime import datetime, timezone, timedelta
 
 import httpx
 
 from app.config import settings
+
+
+GITHUB_SCORING_VERSION = "v2_recent_activity"
+
+
+def _parse_github_datetime(value: str | None) -> datetime | None:
+    if not value:
+        return None
+    try:
+        return datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+    except Exception:
+        return None
+
+
+async def _fetch_recent_commit_dates(
+    client: httpx.AsyncClient,
+    full_repo_name: str,
+    headers: dict[str, str],
+    since_iso: str,
+) -> list[datetime]:
+    """Fetch commit dates for a repository since a timestamp (best-effort)."""
+    try:
+        resp = await client.get(
+            f"https://api.github.com/repos/{full_repo_name}/commits",
+            params={"since": since_iso, "per_page": 100},
+            headers=headers,
+        )
+    except Exception:
+        return []
+
+    if resp.status_code in {404, 409}:
+        return []
+    if resp.status_code != 200:
+        return []
+
+    rows = resp.json() if resp.text else []
+    commit_dates: list[datetime] = []
+    if not isinstance(rows, list):
+        return commit_dates
+
+    for row in rows:
+        commit_obj = row.get("commit") or {}
+        author_obj = commit_obj.get("author") or {}
+        dt = _parse_github_datetime(author_obj.get("date"))
+        if dt:
+            commit_dates.append(dt)
+    return commit_dates
 
 
 async def fetch_github_profile(username: str) -> dict:
@@ -53,7 +101,7 @@ async def fetch_github_profile(username: str) -> dict:
             }
         )
 
-    # Compute scores
+    # Compute baseline scores
     total_stars = sum(r.get("stargazers_count", 0) for r in repos)
     total_forks = sum(r.get("forks_count", 0) for r in repos)
     repos_count = len(repos)
@@ -73,8 +121,78 @@ async def fetch_github_profile(username: str) -> dict:
         (total_stars * 3) + (total_forks * 2) + (repos_count * 1), 100
     )
 
+    # Activity metrics (recent commits + consistency in last 90 days)
+    now = datetime.now(timezone.utc)
+    cutoff_90 = now - timedelta(days=90)
+    since_iso = cutoff_90.isoformat().replace("+00:00", "Z")
+
+    repos_sorted_by_push = sorted(
+        repos,
+        key=lambda r: _parse_github_datetime(r.get("pushed_at")) or datetime.fromtimestamp(0, tz=timezone.utc),
+        reverse=True,
+    )
+    activity_candidates = [r for r in repos_sorted_by_push if not r.get("fork")]
+    if not activity_candidates:
+        activity_candidates = repos_sorted_by_push
+    sampled_repos = activity_candidates[:6]
+
+    recent_commit_dates: list[datetime] = []
+    if sampled_repos:
+        async with httpx.AsyncClient(timeout=15) as client:
+            tasks = []
+            for repo in sampled_repos:
+                full_name = repo.get("full_name") or f"{username}/{repo.get('name', '')}"
+                if "/" not in str(full_name):
+                    continue
+                tasks.append(_fetch_recent_commit_dates(client, str(full_name), headers, since_iso))
+
+            if tasks:
+                results = await asyncio.gather(*tasks, return_exceptions=True)
+                for item in results:
+                    if isinstance(item, list):
+                        recent_commit_dates.extend(item)
+
+    recent_commits_90d = len(recent_commit_dates)
+    active_weeks_90d = len({(d.isocalendar().year, d.isocalendar().week) for d in recent_commit_dates})
+    active_months_90d = len({(d.year, d.month) for d in recent_commit_dates})
+
+    pushed_dates = [
+        _parse_github_datetime(repo.get("pushed_at"))
+        for repo in repos
+    ]
+    pushed_dates = [d for d in pushed_dates if d is not None]
+    active_repos_90d = sum(1 for d in pushed_dates if d >= cutoff_90)
+
+    latest_push_at = max(pushed_dates) if pushed_dates else None
+    latest_commit_at = max(recent_commit_dates) if recent_commit_dates else None
+    activity_points = [d for d in [latest_push_at, latest_commit_at] if d is not None]
+    latest_activity_at = max(activity_points) if activity_points else None
+    days_since_activity = (now - latest_activity_at).days if latest_activity_at else 9999
+
+    recent_commit_score = min(recent_commits_90d * 2, 40)
+    consistency_score = min(active_weeks_90d * 2.5, 30)
+    active_repo_score = min(active_repos_90d * 3, 15)
+
+    if days_since_activity <= 7:
+        freshness_score = 15
+    elif days_since_activity <= 30:
+        freshness_score = 12
+    elif days_since_activity <= 60:
+        freshness_score = 8
+    elif days_since_activity <= 90:
+        freshness_score = 4
+    else:
+        freshness_score = 0
+
+    activity_score = min(
+        round(recent_commit_score + consistency_score + active_repo_score + freshness_score),
+        100,
+    )
+
     github_score = round(
-        profile_completeness * 0.4 + repo_quality * 0.6
+        profile_completeness * 0.25
+        + repo_quality * 0.35
+        + activity_score * 0.40
     )
     github_score = min(github_score, 100)
 
@@ -94,6 +212,33 @@ async def fetch_github_profile(username: str) -> dict:
         "top_repos": top_repos[:5],
         "total_stars": total_stars,
         "total_forks": total_forks,
+        "recent_commits_90d": recent_commits_90d,
+        "active_weeks_90d": active_weeks_90d,
+        "active_months_90d": active_months_90d,
+        "active_repos_90d": active_repos_90d,
+        "days_since_last_activity": days_since_activity if days_since_activity != 9999 else None,
+        "profile_completeness": profile_completeness,
+        "repo_quality": repo_quality,
+        "activity_score": activity_score,
+        "scoring_version": GITHUB_SCORING_VERSION,
+        "scoring_breakdown": {
+            "weights": {
+                "profile_completeness": 0.25,
+                "repo_quality": 0.35,
+                "activity_score": 0.40,
+            },
+            "components": {
+                "profile_completeness": profile_completeness,
+                "repo_quality": repo_quality,
+                "activity_score": activity_score,
+            },
+            "activity_components": {
+                "recent_commit_score": recent_commit_score,
+                "consistency_score": consistency_score,
+                "active_repo_score": active_repo_score,
+                "freshness_score": freshness_score,
+            },
+        },
         "github_score": github_score,
-        "analyzed_at": datetime.now(timezone.utc).isoformat(),
+        "analyzed_at": now.isoformat(),
     }

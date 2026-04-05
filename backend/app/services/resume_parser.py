@@ -123,8 +123,10 @@ def parse_resume(file_bytes: bytes, filename: str) -> dict:
 
     if filename_lower.endswith(".pdf"):
         text = extract_text_from_pdf(file_bytes)
-    elif filename_lower.endswith((".docx", ".doc")):
+    elif filename_lower.endswith(".docx"):
         text = extract_text_from_docx(file_bytes)
+    elif filename_lower.endswith(".doc"):
+        raise ValueError("Legacy .doc files are not supported yet. Please upload PDF or DOCX.")
     else:
         raise ValueError("Unsupported file type. Only PDF and DOCX are allowed.")
 
