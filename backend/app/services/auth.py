@@ -80,7 +80,7 @@ async def get_current_user(
 
         return merged_user
     except SupabaseAuthError as exc:
-        raise HTTPException(status_code=401, detail=str(exc))
+        raise HTTPException(status_code=exc.status_code, detail=str(exc))
 
 
 async def get_current_onboarded_user(user=Depends(get_current_user)):

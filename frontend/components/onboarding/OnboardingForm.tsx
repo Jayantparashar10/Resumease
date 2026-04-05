@@ -95,7 +95,7 @@ export default function OnboardingForm() {
                 : "border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 text-slate-700 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
             }`}
           >
-            👨‍🎓 Student
+            Student
           </button>
           <button
             type="button"
@@ -106,7 +106,7 @@ export default function OnboardingForm() {
                 : "border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 text-slate-700 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
             }`}
           >
-            💼 Recruiter
+            Recruiter
           </button>
         </div>
       </div>
@@ -216,7 +216,7 @@ export default function OnboardingForm() {
         disabled={loading}
         className="mt-8 w-full rounded-lg bg-gradient-to-r from-violet-600 to-indigo-600 py-3 text-sm font-semibold text-white shadow-sm shadow-violet-500/25 hover:opacity-90 disabled:opacity-60 transition-opacity"
       >
-        {loading ? "Saving your onboarding..." : "✓ Complete onboarding"}
+        {loading ? "Saving your onboarding..." : "Complete onboarding"}
       </button>
     </form>
   );

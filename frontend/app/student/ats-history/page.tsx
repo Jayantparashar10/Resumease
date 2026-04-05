@@ -56,14 +56,26 @@ export default function AtsHistoryPage() {
   const [selectedScore, setSelectedScore] = useState<ATSScore | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadingDetails, setLoadingDetails] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     atsApi
       .history()
       .then((res) => {
         setHistory(res.data);
+        setError(null);
       })
-      .catch(() => {
+      .catch((err) => {
+        const errorCode = err?.response?.status;
+        if (errorCode === 503) {
+          setError(
+            "Database service is temporarily unavailable. Please try again in a few moments. Our backend is attempting to reconnect..."
+          );
+        } else if (errorCode === 500) {
+          setError("Server error. Please refresh the page and try again.");
+        } else {
+          setError("Failed to load ATS history. Please try again later.");
+        }
         toast.error("Failed to load ATS history");
       })
       .finally(() => setLoading(false));
@@ -87,7 +99,7 @@ export default function AtsHistoryPage() {
         <Navbar />
         <main className="mx-auto max-w-6xl px-6 py-12">
           <div className="mb-8">
-            <h1 className="mb-2 text-3xl font-bold text-zinc-900">📊 ATS Score History</h1>
+            <h1 className="mb-2 text-3xl font-bold text-zinc-900">📈 ATS Score History</h1>
             <p className="text-sm text-zinc-600">
               Review detailed analysis of your resume compatibility with job postings
             </p>
@@ -95,8 +107,39 @@ export default function AtsHistoryPage() {
 
           {loading ? (
             <div className="rounded-2xl border-2 border-dashed border-zinc-300 bg-white p-12 text-center">
-              <div className="inline-block animate-spin">⏳</div>
-              <p className="mt-2 text-sm text-zinc-500">Loading your ATS scores...</p>
+              <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-zinc-200 border-t-indigo-600 mx-auto"></div>
+              <p className="mt-4 text-sm text-zinc-500">Loading your ATS scores...</p>
+            </div>
+          ) : error ? (
+            <div className="rounded-2xl border-2 border-red-200 bg-red-50 p-8 text-center">
+              <p className="mb-3 text-lg font-semibold text-red-900">⚠ Unable to Load History</p>
+              <p className="mb-4 text-sm text-red-700">{error}</p>
+              <button
+                onClick={() => {
+                  setError(null);
+                  setLoading(true);
+                  atsApi
+                    .history()
+                    .then((res) => {
+                      setHistory(res.data);
+                      setError(null);
+                    })
+                    .catch((err) => {
+                      const errorCode = err?.response?.status;
+                      if (errorCode === 503) {
+                        setError(
+                          "Database service is temporarily unavailable. Please try again in a few moments."
+                        );
+                      } else {
+                        setError("Failed to load ATS history. Please try again.");
+                      }
+                    })
+                    .finally(() => setLoading(false));
+                }}
+                className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700"
+              >
+                Retry
+              </button>
             </div>
           ) : !loading && history.length === 0 ? (
             <div className="rounded-2xl border-2 border-dashed border-zinc-300 bg-white p-12 text-center">
@@ -155,20 +198,20 @@ export default function AtsHistoryPage() {
                     <p className="mb-4 text-sm font-semibold text-zinc-900">Score Breakdown</p>
                     <div className="space-y-4">
                       <ScoreMetric
-                        label="📚 Skills Match"
+                        label="Skills Match"
                         value={selectedScore.breakdown.skills_match || 0}
                       />
                       <ScoreMetric
-                        label="💼 Experience Relevance"
+                        label="Experience Relevance"
                         value={selectedScore.breakdown.experience_relevance || 0}
                       />
                       <ScoreMetric
-                        label="🎯 Project Quality"
+                        label="Project Quality"
                         value={selectedScore.breakdown.project_quality || 0}
                       />
                       <ScoreMetric
-                        label="🤝 Cultural Fit"
-                        value={selectedScore.breakdown.cultural_fit || 0}
+                        label="Link Verification"
+                        value={(selectedScore.breakdown.link_verification || 0) > 0 ? 100 : 0}
                       />
                     </div>
                   </div>
@@ -178,7 +221,7 @@ export default function AtsHistoryPage() {
                     <div className="grid gap-4 sm:grid-cols-2">
                       {selectedScore.matched_skills.length > 0 && (
                         <div className="rounded-2xl border-2 border-green-200 bg-green-50 p-4">
-                          <p className="mb-3 text-sm font-semibold text-green-900">✓ Matched Skills</p>
+                          <p className="mb-3 text-sm font-semibold text-green-900">Matched Skills</p>
                           <div className="flex flex-wrap gap-2">
                             {selectedScore.matched_skills.map((skill) => (
                               <span
@@ -194,7 +237,7 @@ export default function AtsHistoryPage() {
 
                       {selectedScore.missing_skills.length > 0 && (
                         <div className="rounded-2xl border-2 border-red-200 bg-red-50 p-4">
-                          <p className="mb-3 text-sm font-semibold text-red-900">✗ Missing Skills</p>
+                          <p className="mb-3 text-sm font-semibold text-red-900">Missing Skills</p>
                           <div className="flex flex-wrap gap-2">
                             {selectedScore.missing_skills.map((skill) => (
                               <span
@@ -240,7 +283,7 @@ export default function AtsHistoryPage() {
                   {/* Suggestions */}
                   {selectedScore.suggestions && selectedScore.suggestions.length > 0 && (
                     <div className="rounded-2xl border-2 border-purple-200 bg-purple-50 p-6">
-                      <p className="mb-4 text-sm font-semibold text-purple-900">💡 Improvement Suggestions</p>
+                      <p className="mb-4 text-sm font-semibold text-purple-900">Improvement Suggestions</p>
                       <ul className="space-y-2">
                         {selectedScore.suggestions.map((suggestion, idx) => (
                           <li key={idx} className="flex gap-3 text-sm text-purple-800">

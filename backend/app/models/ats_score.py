@@ -7,7 +7,6 @@ class ScoreBreakdown(BaseModel):
     skills_match: float = 0.0
     experience_relevance: float = 0.0
     project_quality: float = 0.0
-    cultural_fit: float = 0.0
     link_verification: float = 0.0
 
 

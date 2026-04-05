@@ -33,12 +33,20 @@ create table if not exists public.resumes (
   link_analysis jsonb not null default '{}'::jsonb,
   parser_version text not null default 'v1',
   screening_summary jsonb not null default '{}'::jsonb,
+  latex_source text,
+  latex_updated_at timestamptz,
   status text not null default 'pending',
   uploaded_at timestamptz not null default now()
 );
 
 create table if not exists public.github_analysis (
   username text primary key,
+  data jsonb not null default '{}'::jsonb,
+  analyzed_at timestamptz not null default now()
+);
+
+create table if not exists public.portfolio_analysis (
+  url text primary key,
   data jsonb not null default '{}'::jsonb,
   analyzed_at timestamptz not null default now()
 );
@@ -79,6 +87,7 @@ create index if not exists idx_jobs_recruiter_id on public.jobs(recruiter_id);
 create index if not exists idx_ats_scores_job_id on public.ats_scores(job_id);
 create index if not exists idx_ats_scores_resume_job on public.ats_scores(resume_id, job_id);
 create index if not exists idx_github_analysis_analyzed_at on public.github_analysis(analyzed_at);
+create index if not exists idx_portfolio_analysis_analyzed_at on public.portfolio_analysis(analyzed_at);
 
 alter table public.profiles enable row level security;
 alter table public.resumes enable row level security;

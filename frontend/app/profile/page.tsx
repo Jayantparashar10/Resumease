@@ -33,29 +33,32 @@ export default function ProfilePage() {
 
   return (
     <AuthGuard>
-      <div className="min-h-screen bg-zinc-50">
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
         <Navbar />
         <main className="mx-auto max-w-2xl px-6 py-10">
-          <h1 className="mb-2 text-2xl font-bold text-zinc-900">Profile</h1>
-          <p className="mb-6 text-sm text-zinc-500">Update your personal details.</p>
-          <form onSubmit={handleSubmit} className="space-y-4 rounded-2xl border bg-white p-6">
+          <h1 className="mb-2 text-2xl font-bold text-slate-900 dark:text-slate-50">Profile</h1>
+          <p className="mb-6 text-sm text-slate-500 dark:text-slate-400">Update your personal details.</p>
+          <form
+            onSubmit={handleSubmit}
+            className="space-y-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6"
+          >
             <input
               required
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
-              className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+              className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 px-3 py-2 text-sm text-slate-900 dark:text-slate-100 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
               placeholder="Full name"
             />
             <input
               value={avatarUrl}
               onChange={(e) => setAvatarUrl(e.target.value)}
-              className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+              className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 px-3 py-2 text-sm text-slate-900 dark:text-slate-100 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
               placeholder="Avatar URL (optional)"
             />
             <button
               type="submit"
               disabled={saving}
-              className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-60"
+              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
             >
               {saving ? "Saving..." : "Save changes"}
             </button>

@@ -19,7 +19,7 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Global 401 handler — clear token and redirect to login
+// Global error handler for auth/connection issues
 api.interceptors.response.use(
   (res) => res,
   (error) => {
@@ -29,6 +29,13 @@ api.interceptors.response.use(
       requestUrl.includes("/api/v1/auth/login") ||
       requestUrl.includes("/api/v1/auth/register");
 
+    // Handle service unavailable errors (e.g., database connection issues)
+    if (error.response?.status === 503 && typeof window !== "undefined") {
+      // Don't redirect, let the component handle it with a user-friendly message
+      return Promise.reject(error);
+    }
+
+    // Handle 401 (unauthorized) - except for bootstrap auth requests
     if (
       error.response?.status === 401 &&
       typeof window !== "undefined" &&
@@ -118,6 +125,21 @@ export interface Resume {
   status: string;
   uploaded_at: string;
   parsed_text?: string;
+  latex_source?: string | null;
+  latex_updated_at?: string | null;
+  link_analysis?: {
+    links?: Record<string, string>;
+    github?: any;
+    portfolio?: any;
+    link_score?: number;
+  };
+}
+
+export interface ResumeLatex {
+  resume_id: string;
+  latex_source?: string | null;
+  latex_updated_at?: string | null;
+  generated_with: string;
 }
 
 export const resumeApi = {
@@ -131,6 +153,10 @@ export const resumeApi = {
   list: () => api.get<Resume[]>("/api/v1/resumes/list"),
   get: (id: string) => api.get<Resume>(`/api/v1/resumes/${id}`),
   delete: (id: string) => api.delete(`/api/v1/resumes/${id}`),
+  getLatex: (id: string) => api.get<ResumeLatex>(`/api/v1/resumes/${id}/latex`),
+  generateLatex: (id: string) => api.post<ResumeLatex>(`/api/v1/resumes/${id}/latex/generate`),
+  saveLatex: (id: string, latex_source: string) =>
+    api.put<ResumeLatex>(`/api/v1/resumes/${id}/latex`, { latex_source }),
 };
 
 // ── Jobs ──────────────────────────────────────────────────────────
@@ -175,7 +201,7 @@ export interface ScoreBreakdown {
   skills_match: number;
   experience_relevance: number;
   project_quality: number;
-  cultural_fit: number;
+  link_verification?: number;
 }
 
 export interface ATSScore {
@@ -208,16 +234,47 @@ export const atsApi = {
 };
 
 export interface RecruiterCandidateScore {
-  id: string;
+  score_id: string;
+  candidate_id?: string;
   candidate_name?: string;
   candidate_email?: string;
+  resume_filename?: string;
   resume_id: string;
-  job_id: string;
+  github_url?: string;
+  github_score?: number;
+  portfolio_url?: string;
+  portfolio_score?: number;
   overall_score: number;
+  breakdown?: Record<string, number>;
+  matched_skills?: string[];
+  missing_skills?: string[];
   created_at: string;
+}
+
+export interface RecruiterCandidateProfileDetail extends RecruiterCandidateScore {
+  feedback?: { strengths?: string; weaknesses?: string; overall?: string };
+  suggestions?: string[];
+  resume_skills?: string[];
+  resume_parsed_text?: string;
+  extracted_links?: Record<string, unknown>;
+  link_analysis?: Record<string, unknown>;
+  resume_api_url?: string;
+}
+
+export interface RecruiterCandidateResumeView {
+  resume_id: string;
+  filename: string;
+  parsed_text?: string;
+  skills?: string[];
+  extracted_links?: Record<string, unknown>;
+  link_analysis?: Record<string, unknown>;
 }
 
 export const recruiterApi = {
   getCandidates: (jobId: string) =>
-    api.get<RecruiterCandidateScore[]>(`/api/v1/recruiter/candidates/${jobId}`),
+    api.get<RecruiterCandidateScore[]>(`/api/v1/recruiter/candidates/${jobId}/profiles`),
+  getCandidateProfile: (jobId: string, scoreId: string) =>
+    api.get<RecruiterCandidateProfileDetail>(`/api/v1/recruiter/candidates/${jobId}/profiles/${scoreId}`),
+  getCandidateResume: (jobId: string, scoreId: string) =>
+    api.get<RecruiterCandidateResumeView>(`/api/v1/recruiter/candidates/${jobId}/profiles/${scoreId}/resume`),
 };

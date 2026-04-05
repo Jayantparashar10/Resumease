@@ -1,5 +1,6 @@
 from datetime import datetime
 from typing import Any
+import asyncio
 
 import httpx
 
@@ -44,18 +45,40 @@ async def _request(
 ) -> Any:
     base = settings.SUPABASE_URL.rstrip("/")
     url = f"{base}/rest/v1/{table}"
+    max_retries = 3
+    last_error = None
 
-    async with httpx.AsyncClient(timeout=30) as client:
-        resp = await client.request(
-            method,
-            url,
-            params=params,
-            json=json_data,
-            headers=_headers(prefer),
-        )
+    for attempt in range(max_retries):
+        try:
+            async with httpx.AsyncClient(timeout=30, verify=True) as client:
+                resp = await client.request(
+                    method,
+                    url,
+                    params=params,
+                    json=json_data,
+                    headers=_headers(prefer),
+                )
 
-    if resp.status_code >= 400:
-        raise SupabaseDBError(f"Supabase {table} {method} failed: {resp.text}")
+            if resp.status_code >= 400:
+                raise SupabaseDBError(f"Supabase {table} {method} failed: {resp.text}")
+
+            return resp.json() if resp.text else None
+
+        except (httpx.ConnectError, httpx.TimeoutException) as exc:
+            last_error = exc
+            if attempt < max_retries - 1:
+                wait_time = 2 ** attempt  # exponential backoff: 1s, 2s, 4s
+                await asyncio.sleep(wait_time)
+                continue
+            else:
+                raise SupabaseDBError(
+                    f"Supabase {table} connection failed after {max_retries} attempts: {type(exc).__name__}: {str(exc)}"
+                ) from exc
+        except httpx.HTTPError as exc:
+            raise SupabaseDBError(f"Supabase {table} request failed: {str(exc)}") from exc
+
+    if last_error:
+        raise SupabaseDBError(f"Supabase {table} failed: {str(last_error)}") from last_error
 
     if not resp.text:
         return None
@@ -73,7 +96,7 @@ async def insert_resume(doc: dict[str, Any]) -> dict[str, Any]:
 
 
 async def list_resumes_for_user(user_id: str, include_parsed_text: bool = False) -> list[dict[str, Any]]:
-    select = "*" if include_parsed_text else "id,user_id,filename,file_size,extracted_links,skills,status,parser_version,screening_summary,uploaded_at"
+    select = "*" if include_parsed_text else "id,user_id,filename,file_size,extracted_links,skills,status,parser_version,screening_summary,link_analysis,latex_source,latex_updated_at,uploaded_at"
     params = {
         "user_id": f"eq.{user_id}",
         "select": select,
@@ -90,6 +113,26 @@ async def get_resume_for_user(resume_id: str, user_id: str) -> dict[str, Any] | 
         "limit": "1",
     }
     rows = await _request("GET", "resumes", params=params)
+    return rows[0] if rows else None
+
+
+async def get_resume(resume_id: str) -> dict[str, Any] | None:
+    params = {
+        "id": f"eq.{resume_id}",
+        "select": "*",
+        "limit": "1",
+    }
+    rows = await _request("GET", "resumes", params=params)
+    return rows[0] if rows else None
+
+
+async def get_profile_by_user_id(user_id: str) -> dict[str, Any] | None:
+    params = {
+        "user_id": f"eq.{user_id}",
+        "select": "user_id,email,full_name,avatar_url,role,onboarding_completed,is_active",
+        "limit": "1",
+    }
+    rows = await _request("GET", "profiles", params=params)
     return rows[0] if rows else None
 
 
@@ -111,6 +154,22 @@ async def delete_resume_for_user(resume_id: str, user_id: str) -> bool:
 async def update_resume(resume_id: str, updates: dict[str, Any]) -> dict[str, Any] | None:
     params = {
         "id": f"eq.{resume_id}",
+        "select": "*",
+    }
+    rows = await _request(
+        "PATCH",
+        "resumes",
+        params=params,
+        json_data=_normalize_payload(updates),
+        prefer="return=representation",
+    )
+    return rows[0] if rows else None
+
+
+async def update_resume_for_user(resume_id: str, user_id: str, updates: dict[str, Any]) -> dict[str, Any] | None:
+    params = {
+        "id": f"eq.{resume_id}",
+        "user_id": f"eq.{user_id}",
         "select": "*",
     }
     rows = await _request(
@@ -237,8 +296,8 @@ async def list_ats_scores_for_user(user_id: str) -> list[dict[str, Any]]:
 async def list_ats_scores_for_job(job_id: str) -> list[dict[str, Any]]:
     params = {
         "job_id": f"eq.{job_id}",
-        "select": "id,resume_id,overall_score,created_at",
-        "order": "created_at.desc",
+        "select": "id,resume_id,overall_score,breakdown,feedback,suggestions,matched_skills,missing_skills,created_at",
+        "order": "overall_score.desc,created_at.desc",
     }
     return await _request("GET", "ats_scores", params=params)
 
@@ -257,6 +316,26 @@ async def upsert_github_analysis(row: dict[str, Any]) -> dict[str, Any]:
     rows = await _request(
         "POST",
         "github_analysis",
+        json_data=[_normalize_payload(row)],
+        prefer="resolution=merge-duplicates,return=representation",
+    )
+    return rows[0]
+
+
+async def get_portfolio_analysis(url: str) -> dict[str, Any] | None:
+    params = {
+        "url": f"eq.{url}",
+        "select": "*",
+        "limit": "1",
+    }
+    rows = await _request("GET", "portfolio_analysis", params=params)
+    return rows[0] if rows else None
+
+
+async def upsert_portfolio_analysis(row: dict[str, Any]) -> dict[str, Any]:
+    rows = await _request(
+        "POST",
+        "portfolio_analysis",
         json_data=[_normalize_payload(row)],
         prefer="resolution=merge-duplicates,return=representation",
     )

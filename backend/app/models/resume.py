@@ -28,6 +28,8 @@ class ResumeInDB(ResumeBase):
     sections: dict = {}
     parser_version: str = "v1"
     screening_summary: dict = {}
+    latex_source: Optional[str] = None
+    latex_updated_at: Optional[datetime] = None
     status: str = "pending"  # pending | parsed | failed
     uploaded_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
@@ -43,6 +45,9 @@ class ResumePublic(ResumeBase):
     status: str
     parser_version: str = "v1"
     screening_summary: dict = {}
+    link_analysis: dict = {}
+    latex_source: Optional[str] = None
+    latex_updated_at: Optional[datetime] = None
     uploaded_at: datetime
     parsed_text: Optional[str] = None
 

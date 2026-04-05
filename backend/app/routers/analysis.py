@@ -3,6 +3,7 @@ from datetime import datetime, timedelta, timezone
 
 from app.services.auth import get_current_onboarded_student
 from app.services.github_analyzer import fetch_github_profile
+from app.services.portfolio_analyzer import get_portfolio_analysis as fetch_portfolio_analysis
 from app.services.link_extractor import extract_github_username
 from app.services.supabase_db import (
     SupabaseDBError,
@@ -99,7 +100,12 @@ async def analyze_resume_links(resume_id: str, current_user=Depends(get_current_
         raise HTTPException(status_code=404, detail="Resume not found")
 
     links = resume.get("extracted_links", {})
-    analysis_results = {"links": links, "github": None, "link_score": 0}
+    analysis_results = {
+        "links": links,
+        "github": None,
+        "portfolio": None,
+        "link_score": 0,
+    }
 
     github_url = links.get("github")
     if github_url:
@@ -107,7 +113,15 @@ async def analyze_resume_links(resume_id: str, current_user=Depends(get_current_
         if username:
             gh_data = await fetch_github_profile(username)
             analysis_results["github"] = gh_data
-            analysis_results["link_score"] = gh_data.get("github_score", 0)
+            if gh_data and "github_score" in gh_data:
+                analysis_results["link_score"] += gh_data.get("github_score", 0) * 0.6  # Scale based on weights or use as raw metric
+                
+    portfolio_url = links.get("portfolio")
+    if portfolio_url:
+        pf_data = await fetch_portfolio_analysis(portfolio_url)
+        analysis_results["portfolio"] = pf_data
+        if pf_data and "portfolio_score" in pf_data:
+            analysis_results["link_score"] += pf_data.get("portfolio_score", 0) * 0.4  # Weight the link_score composite
 
     # Store link analysis score in resume doc
     try:
