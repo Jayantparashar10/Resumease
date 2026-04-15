@@ -12,6 +12,7 @@ export default function ProfilePage() {
   const [fullName, setFullName] = useState(user?.full_name ?? "");
   const [avatarUrl, setAvatarUrl] = useState(user?.avatar_url ?? "");
   const [saving, setSaving] = useState(false);
+  const roleLabel = user?.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : "User";
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
@@ -71,7 +72,7 @@ export default function ProfilePage() {
                 <p className="mb-3 text-sm text-slate-500 dark:text-slate-400">{user?.email}</p>
                 <div className="inline-flex items-center gap-2 rounded-full bg-blue-50 dark:bg-blue-950/50 px-3 py-1 text-xs font-medium text-blue-700 dark:text-blue-300">
                   <span className="h-2 w-2 rounded-full bg-blue-500"></span>
-                  {user?.role?.charAt(0).toUpperCase() + user?.role?.slice(1)}
+                  {roleLabel}
                 </div>
               </div>
             </div>
