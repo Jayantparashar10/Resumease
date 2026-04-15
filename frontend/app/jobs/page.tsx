@@ -65,7 +65,7 @@ export default function JobsPage() {
             <select
               value={selectedResume}
               onChange={(e) => setSelectedResume(e.target.value)}
-              className="flex-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 px-3 py-1.5 text-sm text-slate-900 dark:text-slate-100 outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 transition-colors"
+              className="flex-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 px-3 py-1.5 text-sm text-slate-900 dark:text-slate-100 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-colors"
             >
               {resumes.map((r) => (
                 <option key={r.id} value={r.id}>{r.filename}</option>
@@ -93,7 +93,7 @@ export default function JobsPage() {
                   <button
                     onClick={() => handleApply(job.id)}
                     disabled={applyingJob === job.id}
-                    className="flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-violet-600 to-indigo-600 px-3.5 py-1.5 text-xs font-semibold text-white shadow-sm shadow-violet-500/20 hover:opacity-90 disabled:opacity-60 shrink-0 transition-opacity"
+                    className="flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-blue-600 to-sky-600 px-3.5 py-1.5 text-xs font-semibold text-white shadow-sm shadow-blue-500/20 hover:opacity-90 disabled:opacity-60 shrink-0 transition-opacity"
                   >
                     <Zap className="h-3 w-3" />
                     {applyingJob === job.id ? "Scoring…" : "Check ATS Score"}

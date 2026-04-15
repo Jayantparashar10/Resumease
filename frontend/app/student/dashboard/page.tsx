@@ -62,8 +62,8 @@ export default function StudentDashboard() {
         {/* Stats */}
         <div className="mb-8 grid grid-cols-2 gap-4 sm:grid-cols-3">
           <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-sm">
-            <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-xl bg-violet-50 dark:bg-violet-950/50">
-              <FileText className="h-4 w-4 text-violet-600 dark:text-violet-400" />
+            <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-xl bg-blue-50 dark:bg-blue-950/50">
+              <FileText className="h-4 w-4 text-blue-600 dark:text-blue-400" />
             </div>
             <p className="text-2xl font-bold text-slate-900 dark:text-slate-50">{resumes.length}</p>
             <p className="text-xs text-slate-400 dark:text-slate-500">Resumes uploaded</p>
@@ -90,7 +90,7 @@ export default function StudentDashboard() {
         <div className="mb-8 flex gap-3">
           <Link
             href="/student/resumes"
-            className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm shadow-violet-500/25 hover:opacity-90 transition-opacity"
+            className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-sky-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm shadow-blue-500/25 hover:opacity-90 transition-opacity"
           >
             <Upload className="h-4 w-4" /> Upload Resume
           </Link>
@@ -117,7 +117,7 @@ export default function StudentDashboard() {
             <div className="rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-10 text-center">
               <FileText className="mx-auto mb-3 h-8 w-8 text-slate-300 dark:text-slate-600" />
               <p className="text-sm text-slate-500 dark:text-slate-400">No resumes yet.</p>
-              <Link href="/student/resumes" className="mt-2 inline-block text-sm text-violet-600 dark:text-violet-400 hover:underline">
+              <Link href="/student/resumes" className="mt-2 inline-block text-sm text-blue-600 dark:text-blue-400 hover:underline">
                 Upload your first resume →
               </Link>
             </div>
@@ -129,8 +129,8 @@ export default function StudentDashboard() {
                   className="flex items-center justify-between rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-4 py-3 hover:border-slate-300 dark:hover:border-slate-700 transition-colors"
                 >
                   <div className="flex items-center gap-3">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-violet-50 dark:bg-violet-950/50 shrink-0">
-                      <FileText className="h-3.5 w-3.5 text-violet-600 dark:text-violet-400" />
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50 dark:bg-blue-950/50 shrink-0">
+                      <FileText className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
                     </div>
                     <div>
                       <p className="text-sm font-medium text-slate-800 dark:text-slate-200">{r.filename}</p>
@@ -141,7 +141,7 @@ export default function StudentDashboard() {
                   </div>
                   <Link
                     href={`/student/resumes?id=${r.id}`}
-                    className="flex items-center gap-1 text-xs text-violet-600 dark:text-violet-400 hover:underline"
+                    className="flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 hover:underline"
                   >
                     View <ExternalLink className="h-3 w-3" />
                   </Link>

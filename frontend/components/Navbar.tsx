@@ -35,7 +35,7 @@ export default function Navbar() {
   return (
     <nav className="sticky top-0 z-10 border-b border-slate-200/60 dark:border-slate-800/60 bg-white/80 dark:bg-slate-950/80 backdrop-blur-xl px-6 py-3 flex items-center justify-between">
       <Link href="/" className="flex items-center gap-2 group">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-blue-600 to-indigo-600 shadow-sm shadow-blue-500/30 group-hover:shadow-blue-500/50 transition-shadow">
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-blue-600 to-sky-600 shadow-sm shadow-blue-500/30 group-hover:shadow-blue-500/50 transition-shadow">
           <Brain className="h-4 w-4 text-white" />
         </div>
         <span className="font-bold text-slate-900 dark:text-slate-100">

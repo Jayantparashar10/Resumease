@@ -31,6 +31,19 @@ const heroStats: { label: string; value: string }[] = [
   { label: "Students Placed", value: "800+" },
 ];
 
+const reportBreakdown: { label: string; score: number }[] = [
+  { label: "Skills Match", score: 91 },
+  { label: "Experience Fit", score: 83 },
+  { label: "Project Relevance", score: 79 },
+  { label: "GitHub Verification", score: 96 },
+];
+
+const credibilityMarks = [
+  "Used by campus career cells",
+  "Built for student recruiters",
+  "Secure link verification",
+] as const;
+
 const containerVariants: Variants = {
   hidden: { opacity: 0, y: 24 },
   visible: {
@@ -283,7 +296,7 @@ export function GlowyWavesHero() {
 
   return (
     <section
-      className="relative isolate flex min-h-screen w-full items-center justify-center overflow-hidden bg-background"
+      className="relative isolate flex min-h-[86vh] w-full items-center overflow-hidden bg-background"
       role="region"
       aria-label="ResumeAse hero section"
     >
@@ -299,97 +312,170 @@ export function GlowyWavesHero() {
         <div className="absolute top-1/2 left-1/4 h-[400px] w-[400px] rounded-full bg-primary/[0.02] blur-[150px] dark:bg-primary/[0.05]" />
       </div>
 
-      <div className="relative z-10 mx-auto flex w-full max-w-6xl flex-col items-center px-6 py-24 text-center md:px-8 lg:px-12">
+      <div className="relative z-10 mx-auto w-full max-w-7xl px-6 py-14 md:px-8 lg:px-12 lg:py-16">
         <motion.div
           variants={containerVariants}
           initial="hidden"
           animate="visible"
-          className="w-full"
+          className="grid w-full items-center gap-8 lg:grid-cols-[1.05fr_0.95fr] lg:gap-12"
         >
-          <motion.div
-            variants={itemVariants}
-            className="mb-6 inline-flex items-center gap-2 rounded-full border border-border/40 bg-background/60 px-4 py-2 text-xs font-semibold uppercase tracking-[0.25em] text-foreground/70 dark:border-border/60 dark:bg-background/70 dark:text-foreground/80"
-          >
-            <Sparkles className="h-4 w-4 text-primary" aria-hidden="true" />
-            AI-Powered Resume Intelligence
-          </motion.div>
-
-          <motion.h1
-            variants={itemVariants}
-            className="mb-6 text-4xl font-semibold tracking-tight text-foreground md:text-6xl lg:text-7xl"
-          >
-            Beat the ATS.{" "}
-            <span className="bg-gradient-to-r from-primary via-primary/60 to-foreground/80 bg-clip-text text-transparent">
-              Land Your Dream Job.
-            </span>
-          </motion.h1>
-
-          <motion.p
-            variants={itemVariants}
-            className="mx-auto mb-10 max-w-3xl text-lg text-foreground/70 md:text-2xl"
-          >
-            ResumeAse scans your resume, verifies your GitHub, and uses LLM
-            scoring to give you an accurate ATS score with actionable feedback —
-            all in seconds.
-          </motion.p>
-
-          <motion.div
-            variants={itemVariants}
-            className="mb-10 flex flex-col items-center justify-center gap-4 sm:flex-row"
-          >
-            <Button
-              size="lg"
-              className="group gap-2 rounded-full px-8 text-base uppercase tracking-[0.2em]"
-              onClick={() => (window.location.href = "/register")}
+          <div className="order-2 lg:order-1">
+            <motion.div
+              variants={itemVariants}
+              className="mb-4 inline-flex items-center gap-2 rounded-full border border-border/40 bg-background/60 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.25em] text-foreground/70 dark:border-border/60 dark:bg-background/70 dark:text-foreground/80"
             >
-              Get Started Free
-              <ArrowRight
-                className="h-4 w-4 transition-transform group-hover:translate-x-1"
-                aria-hidden="true"
-              />
-            </Button>
-            <Button
-              size="lg"
-              variant="outline"
-              className="rounded-full border-border/40 bg-background/60 px-8 text-base text-foreground/80 backdrop-blur transition-all hover:border-border/60 hover:bg-background/70 dark:border-border/50 dark:bg-background/40 dark:text-foreground/70 dark:hover:border-border/70 dark:hover:bg-background/50"
-              onClick={() => (window.location.href = "/login")}
-            >
-              Log in
-            </Button>
-          </motion.div>
+              <Sparkles className="h-4 w-4 text-primary" aria-hidden="true" />
+              AI-Powered Resume Intelligence
+            </motion.div>
 
-          <motion.ul
-            variants={itemVariants}
-            className="mb-12 flex flex-wrap items-center justify-center gap-3 text-xs uppercase tracking-[0.2em] text-foreground/70 dark:text-foreground/80"
-          >
-            {highlightPills.map((pill) => (
-              <li
-                key={pill}
-                className="rounded-full border border-border/40 bg-background/60 px-4 py-2 backdrop-blur dark:border-border/60 dark:bg-background/70"
+            <motion.h1
+              variants={itemVariants}
+              className="mb-4 max-w-3xl text-4xl font-semibold tracking-tight text-foreground md:text-6xl lg:text-[3.8rem]"
+            >
+              Beat the ATS.{" "}
+              <span className="bg-gradient-to-r from-primary via-sky-500 to-foreground/80 bg-clip-text text-transparent">
+                Land Your Dream Job.
+              </span>
+            </motion.h1>
+
+            <motion.p
+              variants={itemVariants}
+              className="mb-7 max-w-2xl text-base leading-relaxed text-foreground/72 md:text-xl"
+            >
+              ResumeAse scans your resume, verifies GitHub activity, and uses
+              LLM-backed scoring to generate a practical ATS report with clear,
+              job-specific actions in seconds.
+            </motion.p>
+
+            <motion.div
+              variants={itemVariants}
+              className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center"
+            >
+              <Button
+                size="lg"
+                className="group gap-2 rounded-full px-8 text-sm uppercase tracking-[0.2em]"
+                onClick={() => (window.location.href = "/register")}
               >
-                {pill}
-              </li>
-            ))}
-          </motion.ul>
+                Get Started Free
+                <ArrowRight
+                  className="h-4 w-4 transition-transform group-hover:translate-x-1"
+                  aria-hidden="true"
+                />
+              </Button>
+              <Button
+                size="lg"
+                variant="outline"
+                className="rounded-full border-border/40 bg-background/60 px-8 text-sm text-foreground/80 backdrop-blur transition-all hover:border-border/60 hover:bg-background/70 dark:border-border/50 dark:bg-background/40 dark:text-foreground/70 dark:hover:border-border/70 dark:hover:bg-background/50"
+                onClick={() => (window.location.href = "/login")}
+              >
+                Log in
+              </Button>
+            </motion.div>
+
+            <motion.p
+              variants={itemVariants}
+              className="mb-7 text-xs font-medium uppercase tracking-[0.18em] text-foreground/55"
+            >
+              No credit card required · Works for PDF and DOCX resumes · Private by default
+            </motion.p>
+
+            <motion.ul
+              variants={itemVariants}
+              className="mb-7 flex flex-wrap items-center gap-3 text-[11px] uppercase tracking-[0.2em] text-foreground/70 dark:text-foreground/80"
+            >
+              {highlightPills.map((pill) => (
+                <li
+                  key={pill}
+                  className="rounded-full border border-border/40 bg-background/60 px-4 py-2 backdrop-blur dark:border-border/60 dark:bg-background/70"
+                >
+                  {pill}
+                </li>
+              ))}
+            </motion.ul>
+
+            <motion.ul
+              variants={itemVariants}
+              className="mb-7 grid gap-2 text-xs text-foreground/70 sm:grid-cols-3"
+            >
+              {credibilityMarks.map((mark) => (
+                <li
+                  key={mark}
+                  className="rounded-xl border border-border/35 bg-background/60 px-3 py-2 backdrop-blur"
+                >
+                  {mark}
+                </li>
+              ))}
+            </motion.ul>
+
+            <motion.div
+              variants={statsVariants}
+              className="grid gap-3 rounded-2xl border border-border/35 bg-background/60 p-4 backdrop-blur-sm dark:border-border/60 dark:bg-background/70 sm:grid-cols-3"
+            >
+              {heroStats.map((stat) => (
+                <motion.div key={stat.label} variants={itemVariants} className="space-y-1">
+                  <div className="text-[10px] uppercase tracking-[0.24em] text-foreground/50 dark:text-foreground/60">
+                    {stat.label}
+                  </div>
+                  <div className="text-2xl font-semibold text-foreground">{stat.value}</div>
+                </motion.div>
+              ))}
+            </motion.div>
+          </div>
 
           <motion.div
-            variants={statsVariants}
-            className="grid gap-4 rounded-2xl border border-border/30 bg-background/60 p-6 backdrop-blur-sm dark:border-border/60 dark:bg-background/70 sm:grid-cols-3"
+            variants={itemVariants}
+            className="order-1 rounded-3xl border border-border/50 bg-background/65 p-4 backdrop-blur-2xl dark:bg-background/60 lg:order-2 lg:p-6"
           >
-            {heroStats.map((stat) => (
-              <motion.div
-                key={stat.label}
-                variants={itemVariants}
-                className="space-y-1"
-              >
-                <div className="text-xs uppercase tracking-[0.3em] text-foreground/50 dark:text-foreground/60">
-                  {stat.label}
+            <div className="rounded-2xl border border-border/45 bg-background/80 p-4 shadow-[0_25px_70px_rgba(14,116,144,0.22)] dark:bg-background/70">
+              <div className="mb-4 flex items-center justify-between border-b border-border/45 pb-3">
+                <div>
+                  <p className="text-[10px] uppercase tracking-[0.24em] text-foreground/55">
+                    ATS Compatibility Report
+                  </p>
+                  <p className="text-sm font-medium text-foreground/85">
+                    Product Designer Resume.pdf
+                  </p>
                 </div>
-                <div className="text-3xl font-semibold text-foreground">
-                  {stat.value}
+                <span className="rounded-full border border-emerald-400/50 bg-emerald-500/12 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-emerald-600 dark:text-emerald-400">
+                  Verified
+                </span>
+              </div>
+
+              <div className="mb-4 rounded-2xl border border-sky-500/20 bg-gradient-to-r from-sky-500/10 to-blue-500/10 p-4">
+                <p className="text-[10px] uppercase tracking-[0.24em] text-foreground/60">
+                  Overall Score
+                </p>
+                <div className="mt-1 flex items-end gap-2">
+                  <span className="text-4xl font-semibold leading-none text-foreground">87</span>
+                  <span className="pb-1 text-xs uppercase tracking-[0.2em] text-foreground/55">/100</span>
                 </div>
-              </motion.div>
-            ))}
+                <p className="mt-2 text-xs text-foreground/65">
+                  Strong profile. Improve quantified impact in projects.
+                </p>
+              </div>
+
+              <div className="space-y-3">
+                {reportBreakdown.map((item) => (
+                  <div key={item.label}>
+                    <div className="mb-1 flex items-center justify-between text-xs text-foreground/65">
+                      <span>{item.label}</span>
+                      <span className="font-semibold text-foreground/85">{item.score}</span>
+                    </div>
+                    <div className="h-2 rounded-full bg-foreground/10">
+                      <div
+                        className="h-2 rounded-full bg-gradient-to-r from-blue-500 to-cyan-400"
+                        style={{ width: `${item.score}%` }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-4 rounded-xl border border-border/45 bg-background/75 p-3 text-xs text-foreground/70">
+                <p className="mb-1 font-semibold text-foreground/82">Top recommendation</p>
+                <p>Add measurable outcomes to your latest project bullets for a faster ATS lift.</p>
+              </div>
+            </div>
           </motion.div>
         </motion.div>
       </div>

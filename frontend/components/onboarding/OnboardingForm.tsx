@@ -38,7 +38,7 @@ export default function OnboardingForm() {
       .map((item) => item.trim())
       .filter(Boolean);
 
-  const inputClass = "w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 px-4 py-3 text-sm font-medium text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:border-violet-500 dark:focus:border-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-500/20 transition-colors";
+  const inputClass = "w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 px-4 py-3 text-sm font-medium text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:border-blue-500 dark:focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-colors";
   const labelClass = "block text-xs font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-400 mb-2";
 
   const handleSubmit = async (event: FormEvent) => {
@@ -91,7 +91,7 @@ export default function OnboardingForm() {
             onClick={() => setRole("student")}
             className={`rounded-lg border px-4 py-3 text-sm font-semibold transition-all ${
               role === "student"
-                ? "border-violet-500 bg-violet-50 dark:bg-violet-950/50 text-violet-700 dark:text-violet-300 shadow-sm"
+                ? "border-blue-500 bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 shadow-sm"
                 : "border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 text-slate-700 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
             }`}
           >
@@ -102,7 +102,7 @@ export default function OnboardingForm() {
             onClick={() => setRole("recruiter")}
             className={`rounded-lg border px-4 py-3 text-sm font-semibold transition-all ${
               role === "recruiter"
-                ? "border-violet-500 bg-violet-50 dark:bg-violet-950/50 text-violet-700 dark:text-violet-300 shadow-sm"
+                ? "border-blue-500 bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 shadow-sm"
                 : "border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 text-slate-700 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
             }`}
           >
@@ -214,7 +214,7 @@ export default function OnboardingForm() {
       <button
         type="submit"
         disabled={loading}
-        className="mt-8 w-full rounded-lg bg-gradient-to-r from-violet-600 to-indigo-600 py-3 text-sm font-semibold text-white shadow-sm shadow-violet-500/25 hover:opacity-90 disabled:opacity-60 transition-opacity"
+        className="mt-8 w-full rounded-lg bg-gradient-to-r from-blue-600 to-sky-600 py-3 text-sm font-semibold text-white shadow-sm shadow-blue-500/25 hover:opacity-90 disabled:opacity-60 transition-opacity"
       >
         {loading ? "Saving your onboarding..." : "Complete onboarding"}
       </button>

@@ -230,8 +230,8 @@ function ResumesContent() {
           {...getRootProps()}
           className={`mb-6 cursor-pointer rounded-2xl border-2 border-dashed p-10 text-center transition-all ${
             isDragActive
-              ? "border-violet-400 dark:border-violet-500 bg-violet-50 dark:bg-violet-950/30"
-              : "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:border-violet-300 dark:hover:border-violet-700 hover:bg-violet-50/50 dark:hover:bg-violet-950/20"
+              ? "border-blue-400 dark:border-blue-500 bg-blue-50 dark:bg-blue-950/30"
+              : "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:border-blue-300 dark:hover:border-blue-700 hover:bg-blue-50/50 dark:hover:bg-blue-950/20"
           }`}
         >
           <input {...getInputProps()} />
@@ -241,7 +241,7 @@ function ResumesContent() {
           {uploading ? (
             <p className="text-sm text-slate-600 dark:text-slate-400">Parsing resume…</p>
           ) : isDragActive ? (
-            <p className="text-sm font-medium text-violet-600 dark:text-violet-400">Drop the file here</p>
+            <p className="text-sm font-medium text-blue-600 dark:text-blue-400">Drop the file here</p>
           ) : (
             <>
               <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
@@ -264,15 +264,15 @@ function ResumesContent() {
                 onClick={() => setSelected(r)}
                 className={`flex cursor-pointer items-center justify-between rounded-xl border px-4 py-3 transition-all ${
                   selected?.id === r.id
-                    ? "border-violet-400 dark:border-violet-600 bg-violet-50 dark:bg-violet-950/40"
+                    ? "border-blue-400 dark:border-blue-600 bg-blue-50 dark:bg-blue-950/40"
                     : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-700"
                 }`}
               >
                 <div className="flex items-center gap-3">
                   <div className={`flex h-8 w-8 items-center justify-center rounded-lg shrink-0 ${
-                    selected?.id === r.id ? "bg-violet-100 dark:bg-violet-900/50" : "bg-slate-100 dark:bg-slate-800"
+                    selected?.id === r.id ? "bg-blue-100 dark:bg-blue-900/50" : "bg-slate-100 dark:bg-slate-800"
                   }`}>
-                    <FileText className={`h-3.5 w-3.5 ${selected?.id === r.id ? "text-violet-600 dark:text-violet-400" : "text-slate-400 dark:text-slate-500"}`} />
+                    <FileText className={`h-3.5 w-3.5 ${selected?.id === r.id ? "text-blue-600 dark:text-blue-400" : "text-slate-400 dark:text-slate-500"}`} />
                   </div>
                   <div>
                     <p className="text-sm font-medium text-slate-800 dark:text-slate-200">{r.filename}</p>
@@ -303,7 +303,7 @@ function ResumesContent() {
                 </p>
                 <div className="flex flex-wrap gap-1.5">
                   {selected.skills.map((s) => (
-                    <span key={s} className="rounded-full bg-violet-50 dark:bg-violet-950/50 border border-violet-100 dark:border-violet-800/50 px-2.5 py-0.5 text-xs font-medium text-violet-700 dark:text-violet-300">
+                    <span key={s} className="rounded-full bg-blue-50 dark:bg-blue-950/50 border border-blue-100 dark:border-blue-800/50 px-2.5 py-0.5 text-xs font-medium text-blue-700 dark:text-blue-300">
                       {s}
                     </span>
                   ))}
@@ -321,7 +321,7 @@ function ResumesContent() {
                       href={selected.extracted_links.github}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400 hover:text-violet-600 dark:hover:text-violet-400 transition-colors"
+                      className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
                     >
                       <Github className="h-3.5 w-3.5 shrink-0" />
                       {selected.extracted_links.github}
@@ -332,7 +332,7 @@ function ResumesContent() {
                       href={selected.extracted_links.linkedin}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400 hover:text-violet-600 dark:hover:text-violet-400 transition-colors"
+                      className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
                     >
                       <ExternalLink className="h-3.5 w-3.5 shrink-0" />
                       LinkedIn
@@ -362,7 +362,7 @@ function ResumesContent() {
               {githubData && (
                 <div className="mb-4 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 p-3 text-xs text-slate-600 dark:text-slate-400">
                   <p className="font-semibold text-slate-800 dark:text-slate-200 mb-1.5">
-                    GitHub Score: <span className="text-violet-600 dark:text-violet-400">{String(githubData.github_score ?? "—")}/100</span>
+                    GitHub Score: <span className="text-blue-600 dark:text-blue-400">{String(githubData.github_score ?? "—")}/100</span>
                   </p>
                   <p>Repos: {String(githubData.public_repos ?? 0)} · Stars: {String(githubData.total_stars ?? 0)}</p>
                   <p className="mt-0.5">Languages: {Object.keys((githubData.languages as Record<string, number>) ?? {}).join(", ") || "N/A"}</p>
@@ -385,7 +385,7 @@ function ResumesContent() {
                   <button
                     onClick={handleGenerateLatex}
                     disabled={latexGenerating || latexLoading}
-                    className="rounded-lg bg-violet-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-violet-500 disabled:opacity-50"
+                    className="rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-500 disabled:opacity-50"
                   >
                     {latexGenerating ? "Generating..." : "Generate with AI"}
                   </button>
@@ -414,7 +414,7 @@ function ResumesContent() {
                   value={latexSource}
                   onChange={(e) => setLatexSource(e.target.value)}
                   placeholder={latexLoading ? "Loading LaTeX..." : "Generate LaTeX with AI, then edit and save here."}
-                  className="h-52 w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 p-3 font-mono text-xs text-slate-800 dark:text-slate-100 outline-none focus:border-violet-500 dark:focus:border-violet-500"
+                  className="h-52 w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 p-3 font-mono text-xs text-slate-800 dark:text-slate-100 outline-none focus:border-blue-500 dark:focus:border-blue-500"
                 />
               </div>
 
@@ -426,7 +426,7 @@ function ResumesContent() {
                 <select
                   value={selectedJob}
                   onChange={(e) => setSelectedJob(e.target.value)}
-                  className="mb-3 w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 px-3 py-2 text-sm text-slate-900 dark:text-slate-100 outline-none focus:border-violet-500 dark:focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 transition-colors"
+                  className="mb-3 w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 px-3 py-2 text-sm text-slate-900 dark:text-slate-100 outline-none focus:border-blue-500 dark:focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-colors"
                 >
                   <option value="">Select a job posting…</option>
                   {jobs.map((j) => (
@@ -438,7 +438,7 @@ function ResumesContent() {
                 <button
                   onClick={handleScore}
                   disabled={scoring || !selectedJob}
-                  className="w-full rounded-lg bg-gradient-to-r from-violet-600 to-indigo-600 py-2 text-sm font-semibold text-white shadow-sm shadow-violet-500/20 hover:opacity-90 disabled:opacity-50 transition-opacity"
+                  className="w-full rounded-lg bg-gradient-to-r from-blue-600 to-sky-600 py-2 text-sm font-semibold text-white shadow-sm shadow-blue-500/20 hover:opacity-90 disabled:opacity-50 transition-opacity"
                 >
                   {scoring ? "Scoring… (may take 30s)" : "Get ATS Score"}
                 </button>
@@ -477,7 +477,7 @@ function ResumesContent() {
                         <ul className="space-y-1">
                           {atsResult.suggestions.map((s, i) => (
                             <li key={i} className="flex items-start gap-1.5 text-xs text-slate-600 dark:text-slate-400">
-                              <span className="mt-0.5 text-violet-500">•</span>
+                              <span className="mt-0.5 text-blue-500">•</span>
                               {s}
                             </li>
                           ))}
